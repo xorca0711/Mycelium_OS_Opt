@@ -1,0 +1,381 @@
+/* ─── Planner Plugin — Phase 1 ─────────────────────────────────────────────── */
+
+/* Dot animations */
+@keyframes redp {
+  0%,100% { box-shadow: 0 0 10px #ff3b3b; }
+  50%      { box-shadow: 0 0 22px #ff3b3b, 0 0 32px rgba(255,59,59,.22); }
+}
+
+@keyframes fatePulse {
+  0%,100% { color: rgba(255,255,255,0.3); }
+  50%     { color: rgba(255,255,255,0.48); }
+}
+
+@keyframes suggPulse {
+  0%,100% { color: rgba(255,255,255,0.3); }
+  50%     { color: rgba(255,255,255,0.48); }
+}
+
+@keyframes frogWiggle {
+  0%,100% { transform: translateY(-50%) rotate(0deg); }
+  20%     { transform: translateY(-50%) rotate(-8deg); }
+  40%     { transform: translateY(-50%) rotate(8deg); }
+  60%     { transform: translateY(-50%) rotate(-5deg); }
+  80%     { transform: translateY(-50%) rotate(4deg); }
+}
+
+/* System law: no border-radius except .dot */
+.planner-plugin * { border-radius: 0 !important; }
+.dot              { border-radius: 50% !important; }
+
+/* Root layout */
+.planner-plugin {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-main), var(--font-kr), monospace;
+  font-size: 18px;
+  overflow: hidden;
+  padding: 80px 90px 65px 90px;
+  box-sizing: border-box;
+}
+
+.planner-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* CSS design tokens (scoped to planner) */
+.planner-plugin {
+  --teal:   #00c4a7;
+  --blue:   #64c8ff;
+  --c2:     #4ade80;
+  --yellow: #f5c842;
+  --c4:     #ff6b35;
+  --cr:     #ff3b3b;
+  --purple: #c084fc;
+  --ce:     #888888;
+
+  --g1: rgba(255,255,255,.055);
+  --b1: rgba(255,255,255,.09);
+  --b2: rgba(255,255,255,.22);
+  --t1: rgba(255,255,255,.35);
+  --t2: rgba(255,255,255,.62);
+  --t3: rgba(255,255,255,.85);
+}
+
+@keyframes task-form-mode-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes planner-form-out {
+  from { opacity: 1; scale: 1; }
+  to   { opacity: 0; scale: 0.97; }
+}
+
+/* Out — Radix detects this animation and waits for animationend before unmounting */
+.planner-task-form[data-state=closed] {
+  animation: planner-form-out 0.17s ease forwards !important;
+  pointer-events: none;
+}
+
+/* Overlay fades out in sync */
+[data-radix-dialog-overlay][data-state=closed] {
+  animation-duration: 0.17s !important;
+}
+
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--dot-glow), 0 0 16px var(--dot-glow-faint); }
+  50%       { box-shadow: 0 0 22px var(--dot-glow), 0 0 40px var(--dot-glow-faint); }
+}
+
+@keyframes term-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes term-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-5px); }
+}
+
+/* Animation utility classes */
+.dot-anim-red    { animation: redp 1.6s ease-in-out infinite; }
+
+/* Arc collapse: dots arrive from below (project rows fold up into arc row) */
+@keyframes dotsArrive {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.arc-dots-arrive { animation: dotsArrive 0.32s ease forwards; }
+
+/* Missed schedule: flexible task whose planned date passed (amber glow, no urgency pulse) */
+@keyframes amberp {
+  0%,100% { box-shadow: 0 0 6px #f5c842; }
+  50%      { box-shadow: 0 0 14px #f5c842, 0 0 20px rgba(245,200,66,0.18); }
+}
+.dot-anim-missed { animation: amberp 2.6s ease-in-out infinite; }
+
+@keyframes liveBlink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.15; }
+}
+.otc-live-blink { animation: liveBlink 1.1s ease-in-out infinite; }
+
+/* TaskForm dialog font override (portaled outside .planner-plugin, so it can't
+   inherit font-family from that ancestor and needs its own rule) — follows the
+   same settings-driven font as the rest of the app. */
+.planner-task-form,
+.planner-task-form * {
+  font-family: var(--font-main), var(--font-kr), monospace !important;
+}
+
+/* Scrollbar styling */
+.planner-plugin *::-webkit-scrollbar,
+.planner-task-form *::-webkit-scrollbar       { width: 5px; height: 5px; }
+.planner-plugin *::-webkit-scrollbar-track,
+.planner-task-form *::-webkit-scrollbar-track { background: transparent; }
+.planner-plugin *::-webkit-scrollbar-thumb,
+.planner-task-form *::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); }
+.planner-plugin *::-webkit-scrollbar-thumb:hover,
+.planner-task-form *::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.24); }
+.planner-task-form { color-scheme: dark; }
+
+/* Effort bar particles */
+@keyframes effortParticle {
+  0%   { left: -3px; opacity: 0; }
+  6%   { opacity: 1; }
+  88%  { opacity: 0.55; }
+  100% { left: calc(100% + 3px); opacity: 0; }
+}
+.effort-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: #a7f3c0;
+  animation: effortParticle linear infinite;
+}
+
+/* Pressure gauge needle vibration */
+@keyframes needleVibrateSafe {
+  0%, 100% { transform: rotate(-0.4deg); }
+  50%       { transform: rotate(0.4deg); }
+}
+@keyframes needleVibrateLoaded {
+  0%, 100% { transform: rotate(-1deg); }
+  50%       { transform: rotate(1deg); }
+}
+@keyframes needleVibrateHeavy {
+  0%, 100% { transform: rotate(-2.2deg); }
+  50%       { transform: rotate(2.2deg); }
+}
+@keyframes needleVibrateCritical {
+  0%   { transform: rotate(-4deg); }
+  25%  { transform: rotate(3.5deg); }
+  50%  { transform: rotate(-3deg); }
+  75%  { transform: rotate(4deg); }
+  100% { transform: rotate(-4deg); }
+}
+.gauge-needle {
+  transform-box: view-box;
+  transform-origin: 80px 90px;
+}
+.gauge-needle-safe     { animation: needleVibrateSafe     0.55s ease-in-out infinite; }
+.gauge-needle-loaded   { animation: needleVibrateLoaded   0.38s ease-in-out infinite; }
+.gauge-needle-heavy    { animation: needleVibrateHeavy    0.22s ease-in-out infinite; }
+.gauge-needle-critical { animation: needleVibrateCritical 0.14s linear       infinite; }
+
+/* Hide scrollbar on today task column */
+.today-task-col::-webkit-scrollbar { display: none; }
+.today-task-col { scrollbar-width: none; }
+
+/* Hide scrollbar on session log */
+.otc-session-log::-webkit-scrollbar { display: none; }
+.otc-session-log { scrollbar-width: none; }
+
+/* Hide scrollbar on pressure popup overlay */
+.pressure-popup-overlay::-webkit-scrollbar { display: none; }
+.pressure-popup-overlay { scrollbar-width: none; }
+.pressure-popup-inner::-webkit-scrollbar { display: none; }
+.pressure-popup-inner { scrollbar-width: none; }
+
+/* Hide scrollbar on checklist scroll area */
+.checklist-scroll::-webkit-scrollbar { display: none; }
+.checklist-scroll { scrollbar-width: none; }
+
+/* Eat the Frog badge pulse */
+@keyframes frogPulse {
+  0%, 100% { box-shadow: 0 0 5px #4ade80; }
+  50%       { box-shadow: 0 0 14px #4ade80, 0 0 22px rgba(74,222,128,0.25); }
+}
+.frog-badge-glow { animation: frogPulse 2.2s ease-in-out infinite; }
+
+/* Dice modal open/close transitions */
+@keyframes diceModalIn {
+  from { opacity: 0; transform: scale(0.97) translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes diceModalOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(0.97); }
+}
+.dice-modal-in  { animation: diceModalIn  0.18s ease forwards; }
+.dice-modal-out { animation: diceModalOut 0.17s ease forwards; }
+
+/* Dice — entry from top-left with gravity bounce */
+@keyframes diceEntry {
+  0%   { transform: translate(-140px, -180px) rotate(0deg);   animation-timing-function: ease-in; }
+  25%  { transform: translate(-15px,    0px)  rotate(300deg); animation-timing-function: cubic-bezier(0, 0.7, 0.3, 1); }
+  34%  { transform: translate(0px,    -52px)  rotate(370deg); animation-timing-function: cubic-bezier(0.6, 0, 1, 0.4); }
+  44%  { transform: translate(0px,      0px)  rotate(430deg); animation-timing-function: cubic-bezier(0, 0.7, 0.3, 1); }
+  51%  { transform: translate(0px,    -28px)  rotate(462deg); animation-timing-function: cubic-bezier(0.6, 0, 1, 0.4); }
+  59%  { transform: translate(0px,      0px)  rotate(495deg); animation-timing-function: cubic-bezier(0, 0.7, 0.3, 1); }
+  64%  { transform: translate(0px,    -11px)  rotate(513deg); animation-timing-function: cubic-bezier(0.6, 0, 1, 0.4); }
+  70%  { transform: translate(0px,      0px)  rotate(540deg); animation-timing-function: ease-out; }
+  100% { transform: translate(0px,      0px)  rotate(540deg); }
+}
+.dice-rolling-entry { animation: diceEntry 1.8s linear forwards; }
+
+@keyframes diceFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+.dice-fade-out { animation: diceFadeOut 0.3s ease forwards; }
+
+@keyframes diceResultIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.dice-result-in { animation: diceResultIn 0.4s ease forwards; }
+
+/* Tendrils edge flow animation */
+@keyframes tendrilFlow {
+  to { stroke-dashoffset: -20; }
+}
+.tendril-flow-edge {
+  stroke-dasharray: 5 3;
+  animation: tendrilFlow 1.1s linear infinite;
+}
+
+/* XyFlow Controls override */
+.react-flow__controls {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.react-flow__controls-button {
+  background: #0d0d0d !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 0 !important;
+  fill: rgba(255,255,255,0.45) !important;
+  color: rgba(255,255,255,0.45) !important;
+  width: 22px !important;
+  height: 22px !important;
+}
+.react-flow__controls-button:hover {
+  background: #1a1a1a !important;
+  fill: rgba(255,255,255,0.75) !important;
+}
+.react-flow__controls-button svg {
+  max-width: 12px;
+  max-height: 12px;
+}
+
+/* Hide ReactFlow attribution */
+.react-flow__attribution {
+  display: none !important;
+}
+
+/* Blinking cursor underscore */
+@keyframes todayCursorBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.today-cursor-blink { animation: todayCursorBlink 1s step-end infinite; }
+
+/* IN SESSION active node pulse */
+@keyframes sessionActivePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,200,66,0); }
+  50%       { box-shadow: 0 0 0 2px rgba(245,200,66,0.4), 0 0 10px rgba(245,200,66,0.15); }
+}
+.session-active-pulse { animation: sessionActivePulse 1.3s ease-in-out infinite; }
+
+/* IN SESSION title flow */
+@keyframes letterDip {
+  0%, 20%, 100% { color: #000; }
+  10%           { color: #0055FF; }
+}
+
+/* Pressure gauge level label blink */
+@keyframes pressureLevelBlink {
+  0%, 70%, 100% { opacity: 0.8; }
+  85%            { opacity: 0.35; }
+}
+.pressure-level-blink { animation: pressureLevelBlink 2.8s ease-in-out infinite; }
+
+/* ── View transition animations ────────────────────────────────────────────── */
+@keyframes plannerViewIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes plannerViewOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
+/* Sub-page transitions (hub ↔ canvas inside Tendrils) */
+@keyframes plannerPageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes plannerPageOut {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateY(-6px); }
+}
+
+/* Input resets */
+.planner-plugin input,
+.planner-plugin textarea,
+.planner-plugin button {
+  font-family: var(--font-main), var(--font-kr), monospace;
+}
+
+.planner-plugin input:focus,
+.planner-plugin textarea:focus {
+  outline: none;
+  border-color: rgba(0,196,167,0.5) !important;
+}
+
+/* Quick-add mention dropdown scrollbar (portaled outside .planner-plugin) */
+.quick-add-dropdown { color-scheme: dark; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.14) transparent; }
+.quick-add-dropdown::-webkit-scrollbar       { width: 4px; }
+.quick-add-dropdown::-webkit-scrollbar-track { background: transparent; }
+.quick-add-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); }
+.quick-add-dropdown::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); }
+
+/* Skeleton shimmer */
+@keyframes skelShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+.skel-shimmer {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.06) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skelShimmer 3.6s linear infinite;
+}
+
+/* Floating badge idle pulse (box-shadow only — doesn't conflict with FM y-float) */
+@keyframes badgePulse {
+  0%, 100% { box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  50%       { box-shadow: 0 4px 12px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.18); }
+}
+.badge-idle-pulse { animation: badgePulse 3s ease-in-out infinite; }

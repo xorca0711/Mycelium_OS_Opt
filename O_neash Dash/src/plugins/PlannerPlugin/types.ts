@@ -1,0 +1,194 @@
+export type PlannerViewType = 'today' | 'eisenhower' | 'routines' | 'on-the-clock';
+export type NodeType = 'task' | 'event';
+/** User-facing binary input stored in DB: 0 = normal, 1 = important */
+export type UserImportance = 0 | 1;
+/** Computed L0–L4 urgency level derived from importance + due date proximity */
+export type ImportanceLevel = 0 | 1 | 2 | 3 | 4;
+
+export interface PlannerGroup {
+  id: string;
+  name: string;
+  color_hex: string;
+  sort_order: number;
+  is_ungrouped: boolean;
+  created_at: string;
+}
+
+export interface Arc {
+  id: string;
+  name: string;
+  color_hex: string;
+  status?: string;
+  created_at: string;
+}
+
+export interface Project {
+  id: string;
+  arc_id?: string | null;
+  name: string;
+  status?: string;
+  created_at: string;
+}
+
+/** No status recorded means active; anything other than 'active' (archived, finished, …) is not. */
+export function isActiveArc(arc: Arc): boolean {
+  return !arc.status || arc.status === 'active';
+}
+
+export function isActiveProject(project: Project): boolean {
+  return !project.status || project.status === 'active';
+}
+
+export interface PlannerNode {
+  id: string;
+  project_id?: string | null;
+  arc_id?: string | null;
+  title: string;
+  node_type: NodeType;
+  planned_start_at?: string | null;
+  due_at?: string | null;
+  actual_completed_at?: string | null;
+  estimated_duration_minutes?: number | null;
+  importance_level: UserImportance;
+  computed_urgency_level: ImportanceLevel;
+  is_completed: boolean;
+  is_locked: boolean;
+  is_overdue: boolean;
+  is_pinned: boolean;
+  is_missed_schedule?: boolean;
+  created_at: string;
+  updated_at: string;
+  // Computed join fields
+  arc_color?: string | null;
+  groups?: PlannerGroup[];
+  sub_total?: number;
+  sub_done?: number;
+  /** True for virtual instances expanded from a recurring template. Not persisted. */
+  is_virtual?: boolean;
+  /** True when this node was generated from a routine template. */
+  is_routine?: boolean;
+  /** FK to routines.id — set when is_routine is true. */
+  routine_id?: string | null;
+}
+
+export interface SubTask {
+  id: string;
+  node_id: string;
+  title: string;
+  is_completed: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface UserCapacity {
+  id: string;
+  daily_minutes: number;
+  peak_start: string;
+  peak_end: string;
+  updated_at: string;
+}
+
+/** A single recurrence rule — one row in the routine_rules table. */
+export interface RoutineRule {
+  id:                string;
+  routine_id?:       string;
+  sort_order?:       number;
+  freq:              'daily' | 'weekly' | 'monthly' | 'manual';
+  repeat_interval:   number;
+  days?:             number[] | null;    // for weekly: [0=Sun … 6=Sat], stored as JSON string in DB
+  start_date:        string;             // YYYY-MM-DD — for manual rules, this IS the one-off date
+  end_mode:          'date' | 'count';
+  end_count?:        number | null;
+  end_date?:         string | null;
+  start_time?:       string | null;      // HH:MM
+  duration_minutes?: number | null;
+  exceptions?:       string[] | null;    // YYYY-MM-DD dates to skip for this rule
+}
+
+/** A manually-added occurrence passed through the form (not yet in DB). */
+export interface ManualOccInput {
+  id:                string;
+  date:              string;   // YYYY-MM-DD
+  start_time?:       string;   // HH:MM
+  duration_minutes?: number;
+}
+
+export interface Routine {
+  id:               string;
+  title:            string;
+  node_type:        NodeType;
+  arc_id?:          string | null;
+  project_id?:      string | null;
+  importance_level: UserImportance;
+  created_at:       string;
+  updated_at:       string;
+  // Hydrated — not DB columns
+  rules?:           RoutineRule[];
+  group_ids?:       string[];
+}
+
+export interface RecurrenceRule {
+  freq: 'daily' | 'weekly' | 'monthly';
+  /** Every N units (1 = every day/week/month, 2 = every other, etc.) */
+  interval: number;
+  /** For weekly: days of week to fire on [0=Sun … 6=Sat]. If omitted, fires on same DOW as first occurrence. */
+  days?: number[];
+  /** YYYY-MM-DD — optional end date (inclusive). If omitted, recurs indefinitely. */
+  until?: string;
+}
+
+export interface CreateNodeData {
+  title: string;
+  node_type?: NodeType;
+  planned_start_at?: string;
+  due_at?: string;
+  estimated_duration_minutes?: number;
+  importance_level?: UserImportance;
+  project_id?: string;
+  arc_id?: string;
+  group_ids?: string[];
+}
+
+
+export const DOT_COLOR_NEUTRAL  = '#9a9a9a';
+export const DOT_COLOR_OVERDUE  = '#ff3b3b';
+export const DOT_COLOR_MISSED   = '#f5c842';
+export const DOT_COLOR_EVENT    = '#888888';
+
+/** A resolved note reference loaded from the filesystem */
+export interface NoteHit {
+  compositeId: string;   // "${groupId}:${noteId}"
+  groupId: string;
+  groupName: string;
+  groupColor: string;
+  noteId: number;
+  title: string;
+  content: string;
+  updatedAt: number;
+}
+
+/** A raw link row as stored in note_task_links */
+export interface LinkedNoteRef {
+  note_id: string;
+  node_id: string;
+  linked_at: string;
+}
+
+export const DOT_DIAMETER = 20;
+
+export function getDotDiameter(): number {
+  return DOT_DIAMETER;
+}
+
+export function getDotColor(node: PlannerNode): string {
+  if (node.is_overdue)        return DOT_COLOR_OVERDUE;
+  if (node.is_missed_schedule) return DOT_COLOR_MISSED;
+  if (node.node_type === 'event') return DOT_COLOR_EVENT;
+  return node.arc_color ?? DOT_COLOR_NEUTRAL;
+}
+
+export function getDotAnimClass(node: PlannerNode): string {
+  if (node.is_overdue)         return 'dot-anim-red';
+  if (node.is_missed_schedule) return 'dot-anim-missed';
+  return '';
+}

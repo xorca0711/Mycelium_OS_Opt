@@ -1,0 +1,8 @@
+# Claude
+.claude/
+.claude.json
+.claude.json.backup
+CLAUDE.md
+
+# Local package-manager cache
+.pnpm-store/

@@ -1,0 +1,804 @@
+import Database from "@tauri-apps/plugin-sql";
+import { documentDir, join } from "@tauri-apps/api/path"; // v2 pathing
+// import { readTextFile, BaseDirectory } from "@tauri-apps/plugin-fs";v2 filesystem
+
+let _db: Database | null = null;
+
+export async function setupDb(): Promise<Database> {
+  try {
+    // 1. Construct the path to the file created by your Rust backend
+    const docsPath = await documentDir();
+    const dbPath = await join(docsPath, "O-neash-data", "oneash-DB.db");
+
+    // 2. Connect to the database
+    // We use load() because the directory is already guaranteed by lib.rs
+    const db = await Database.load(`sqlite:${dbPath}`);
+    _db = db;
+
+    // 3. Enable Foreign Key support (Critical for your many-to-many links)
+    await db.execute("PRAGMA foreign_keys = ON;");
+
+    // 4. Always apply the schema to ensure new tables/columns are created
+    const schemaSql = `
+
+  -- ─────────────────── PLANNER PLUGIN ───────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS arcs (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    color_hex   TEXT DEFAULT '#00c4a7',
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS projects (
+    id          TEXT PRIMARY KEY,
+    arc_id      TEXT,
+    name        TEXT NOT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(arc_id) REFERENCES arcs(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS planner_groups (
+    id             TEXT PRIMARY KEY,
+    name           TEXT NOT NULL,
+    color_hex      TEXT DEFAULT '#64c8ff',
+    sort_order     INTEGER DEFAULT 0,
+    is_ungrouped   BOOLEAN DEFAULT 0,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  INSERT OR IGNORE INTO planner_groups(id, name, color_hex, sort_order, is_ungrouped)
+  VALUES('g-ungrouped', 'ungrouped', '#444444', 99, 1);
+
+  CREATE TABLE IF NOT EXISTS nodes (
+    id                          TEXT PRIMARY KEY,
+    project_id                  TEXT,
+    arc_id                      TEXT,
+    title                       TEXT NOT NULL,
+    node_type                   TEXT NOT NULL DEFAULT 'task'
+                                    CHECK(node_type IN('task','event')),
+    planned_start_at            DATETIME,
+    due_at                      DATETIME,
+    actual_completed_at         DATETIME,
+    estimated_duration_minutes  INTEGER,
+    importance_level            INTEGER NOT NULL DEFAULT 0
+                                    CHECK(importance_level BETWEEN 0 AND 4),
+    computed_urgency_level      INTEGER NOT NULL DEFAULT 0
+                                    CHECK(computed_urgency_level BETWEEN 0 AND 4),
+    is_completed                BOOLEAN DEFAULT 0,
+    is_locked                   BOOLEAN DEFAULT 0,
+    is_overdue                  BOOLEAN DEFAULT 0,
+    is_pinned                   BOOLEAN DEFAULT 0,
+    created_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_routine                  INTEGER DEFAULT 0,
+    routine_id                  TEXT,
+    FOREIGN KEY(project_id)     REFERENCES projects(id)  ON DELETE SET NULL,
+    FOREIGN KEY(arc_id)         REFERENCES arcs(id)      ON DELETE SET NULL,
+    FOREIGN KEY(routine_id)     REFERENCES routines(id)  ON DELETE SET NULL
+  );
+
+  CREATE TRIGGER IF NOT EXISTS nodes_ts AFTER UPDATE ON nodes
+  BEGIN
+    UPDATE nodes SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  CREATE TABLE IF NOT EXISTS node_groups (
+    node_id   TEXT NOT NULL,
+    group_id  TEXT NOT NULL,
+    PRIMARY KEY(node_id, group_id),
+    FOREIGN KEY(node_id)  REFERENCES nodes(id)           ON DELETE CASCADE,
+    FOREIGN KEY(group_id) REFERENCES planner_groups(id)  ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ng_node  ON node_groups(node_id);
+  CREATE INDEX IF NOT EXISTS idx_ng_group ON node_groups(group_id);
+
+  CREATE TRIGGER IF NOT EXISTS nodes_auto_ungrouped AFTER INSERT ON nodes
+  BEGIN
+    INSERT OR IGNORE INTO node_groups(node_id, group_id)
+    SELECT NEW.id, id FROM planner_groups WHERE is_ungrouped = 1 LIMIT 1;
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS remove_ungrouped AFTER INSERT ON node_groups
+  BEGIN
+    DELETE FROM node_groups
+    WHERE node_id = NEW.node_id
+      AND group_id = (SELECT id FROM planner_groups WHERE is_ungrouped = 1)
+      AND NEW.group_id != (SELECT id FROM planner_groups WHERE is_ungrouped = 1);
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS readd_ungrouped_if_empty AFTER DELETE ON node_groups
+  BEGIN
+    INSERT OR IGNORE INTO node_groups(node_id, group_id)
+    SELECT OLD.node_id, id FROM planner_groups
+    WHERE is_ungrouped = 1
+      AND EXISTS (SELECT 1 FROM nodes WHERE id = OLD.node_id)
+      AND NOT EXISTS (
+        SELECT 1 FROM node_groups WHERE node_id = OLD.node_id
+      );
+  END;
+
+  CREATE TABLE IF NOT EXISTS sub_tasks (
+    id           TEXT PRIMARY KEY,
+    node_id      TEXT NOT NULL,
+    title        TEXT NOT NULL,
+    is_completed BOOLEAN DEFAULT 0,
+    sort_order   INTEGER DEFAULT 0,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(node_id) REFERENCES nodes(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_subtasks_node ON sub_tasks(node_id);
+
+  CREATE TABLE IF NOT EXISTS productivity_logs (
+    id              TEXT PRIMARY KEY,
+    node_id         TEXT,
+    completed_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    duration_actual INTEGER,
+    FOREIGN KEY(node_id) REFERENCES nodes(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS user_capacity (
+    id            TEXT PRIMARY KEY DEFAULT 'default',
+    daily_minutes INTEGER DEFAULT 480,
+    peak_start    TEXT DEFAULT '09:00',
+    peak_end      TEXT DEFAULT '12:00',
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  INSERT OR IGNORE INTO user_capacity(id, daily_minutes, peak_start, peak_end)
+  VALUES('default', 480, '09:00', '12:00');
+
+  CREATE INDEX IF NOT EXISTS idx_nodes_project   ON nodes(project_id);
+  CREATE INDEX IF NOT EXISTS idx_nodes_arc       ON nodes(arc_id);
+  CREATE INDEX IF NOT EXISTS idx_nodes_due       ON nodes(due_at);
+  CREATE INDEX IF NOT EXISTS idx_nodes_planned   ON nodes(planned_start_at);
+  CREATE INDEX IF NOT EXISTS idx_nodes_completed ON nodes(is_completed);
+  CREATE INDEX IF NOT EXISTS idx_nodes_overdue   ON nodes(is_overdue);
+  CREATE INDEX IF NOT EXISTS idx_projects_arc    ON projects(arc_id);
+
+  CREATE TABLE IF NOT EXISTS tendril_edges (
+    id          TEXT PRIMARY KEY,
+    project_id  TEXT NOT NULL,
+    source_id   TEXT NOT NULL,
+    target_id   TEXT NOT NULL,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(source_id) REFERENCES nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY(target_id) REFERENCES nodes(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_te_project ON tendril_edges(project_id);
+
+  -- ─────────────────── ROUTINES ─────────────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS routines (
+    id               TEXT PRIMARY KEY,
+    title            TEXT NOT NULL,
+    node_type        TEXT NOT NULL DEFAULT 'task'
+                         CHECK(node_type IN('task','event')),
+    arc_id           TEXT,
+    project_id       TEXT,
+    importance_level INTEGER NOT NULL DEFAULT 0,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(arc_id)     REFERENCES arcs(id)     ON DELETE SET NULL,
+    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS routine_rules (
+    id               TEXT PRIMARY KEY,
+    routine_id       TEXT NOT NULL,
+    sort_order       INTEGER DEFAULT 0,
+    freq             TEXT NOT NULL DEFAULT 'weekly'
+                         CHECK(freq IN('daily','weekly','monthly','manual')),
+    repeat_interval  INTEGER NOT NULL DEFAULT 1,
+    days             TEXT,
+    start_date       TEXT NOT NULL,
+    end_mode         TEXT NOT NULL DEFAULT 'count'
+                         CHECK(end_mode IN('count','date')),
+    end_count        INTEGER,
+    end_date         TEXT,
+    start_time       TEXT,
+    duration_minutes INTEGER,
+    exceptions       TEXT,
+    FOREIGN KEY(routine_id) REFERENCES routines(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_routine_rules_routine ON routine_rules(routine_id);
+
+  CREATE TABLE IF NOT EXISTS routine_groups (
+    routine_id  TEXT NOT NULL,
+    group_id    TEXT NOT NULL,
+    PRIMARY KEY (routine_id, group_id),
+    FOREIGN KEY (routine_id) REFERENCES routines(id)         ON DELETE CASCADE,
+    FOREIGN KEY (group_id)   REFERENCES planner_groups(id)   ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_rg_routine ON routine_groups(routine_id);
+  CREATE INDEX IF NOT EXISTS idx_rg_group   ON routine_groups(group_id);
+
+  CREATE INDEX IF NOT EXISTS idx_routines_arc     ON routines(arc_id);
+  CREATE INDEX IF NOT EXISTS idx_routines_project ON routines(project_id);
+
+  CREATE TRIGGER IF NOT EXISTS routines_ts AFTER UPDATE ON routines
+  BEGIN
+    UPDATE routines SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  -- ─────────────────── NOTES PLUGIN ────────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS notes (
+    id            TEXT PRIMARY KEY,
+    note_type     TEXT NOT NULL DEFAULT 'memo'
+                      CHECK(note_type IN('memo','document')),
+    title         TEXT,
+    content_plain TEXT,
+    content_json  TEXT,
+    status        TEXT NOT NULL DEFAULT 'active'
+                      CHECK(status IN('active','archived')),
+    arc_id        TEXT,
+    project_id    TEXT,
+    pinned        BOOLEAN NOT NULL DEFAULT 0,
+    color_hex     TEXT,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(arc_id)     REFERENCES arcs(id)     ON DELETE SET NULL,
+    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL
+  );
+
+  CREATE TRIGGER IF NOT EXISTS notes_ts AFTER UPDATE ON notes
+  BEGIN
+    UPDATE notes SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  CREATE TABLE IF NOT EXISTS note_groups (
+    note_id   TEXT NOT NULL,
+    group_id  TEXT NOT NULL,
+    PRIMARY KEY(note_id, group_id),
+    FOREIGN KEY(note_id)  REFERENCES notes(id)          ON DELETE CASCADE,
+    FOREIGN KEY(group_id) REFERENCES planner_groups(id)  ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_notes_type    ON notes(note_type);
+  CREATE INDEX IF NOT EXISTS idx_notes_status  ON notes(note_type, status);
+  CREATE INDEX IF NOT EXISTS idx_notes_arc     ON notes(arc_id);
+  CREATE INDEX IF NOT EXISTS idx_notes_project ON notes(project_id);
+  CREATE INDEX IF NOT EXISTS idx_ng_note       ON note_groups(note_id);
+  CREATE INDEX IF NOT EXISTS idx_ng_group      ON note_groups(group_id);
+
+  -- ─────────────────── DOC COMMENTS ────────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS doc_comments (
+    id          TEXT PRIMARY KEY,
+    doc_id      TEXT NOT NULL,
+    mark_id     TEXT NOT NULL,
+    body        TEXT NOT NULL,
+    resolved    INTEGER DEFAULT 0,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(doc_id) REFERENCES notes(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_comments_doc ON doc_comments(doc_id);
+
+  -- ─────────────────── NOTE LINKS (wiki-link backlink cache) ───────────────────
+
+  CREATE TABLE IF NOT EXISTS note_links (
+    source_id TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    PRIMARY KEY (source_id, target_id),
+    FOREIGN KEY (source_id) REFERENCES notes(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_id) REFERENCES notes(id) ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_links_target ON note_links(target_id);
+
+  -- ─────────────────── SLEEP TRACKER ───────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS sleep_entries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    date        TEXT NOT NULL,
+    sleep_start TEXT NOT NULL,
+    wake_time   TEXT NOT NULL,
+    is_nap      INTEGER DEFAULT 0,
+    notes       TEXT,
+    created_at  TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_sleep_entries_date  ON sleep_entries(date);
+  CREATE INDEX IF NOT EXISTS idx_sleep_entries_start ON sleep_entries(sleep_start);
+
+  CREATE TABLE IF NOT EXISTS sleep_targets (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_sleep_start TEXT NOT NULL,
+    target_duration    REAL NOT NULL,
+    set_at             TEXT DEFAULT (datetime('now'))
+  );
+
+  -- ─────────────────── DISPATCH PLUGIN ──────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS dispatch_locations (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    color       TEXT NOT NULL DEFAULT '#666666',
+    created_at  TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS dispatch_work_blocks (
+    id          TEXT PRIMARY KEY,
+    date        TEXT NOT NULL,
+    start_time  INTEGER NOT NULL,
+    end_time    INTEGER NOT NULL,
+    location_id TEXT,
+    created_at  TEXT DEFAULT (datetime('now')),
+    updated_at  TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(location_id) REFERENCES dispatch_locations(id) ON DELETE SET NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_dispatch_wb_date ON dispatch_work_blocks(date);
+
+  CREATE TABLE IF NOT EXISTS dispatch_node_placements (
+    id                TEXT PRIMARY KEY,
+    work_block_id     TEXT NOT NULL,
+    node_id           TEXT NOT NULL,
+    start_offset      INTEGER NOT NULL DEFAULT 0,
+    duration_override INTEGER,
+    created_at        TEXT DEFAULT (datetime('now')),
+    updated_at        TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY(work_block_id) REFERENCES dispatch_work_blocks(id) ON DELETE CASCADE,
+    FOREIGN KEY(node_id)       REFERENCES nodes(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_dispatch_np_block ON dispatch_node_placements(work_block_id);
+  CREATE INDEX IF NOT EXISTS idx_dispatch_np_node  ON dispatch_node_placements(node_id);
+
+  -- ─────────────────── HABITS PLUGIN ───────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS habits (
+    id             TEXT PRIMARY KEY,
+    name           TEXT NOT NULL,
+    color          TEXT NOT NULL DEFAULT '#4a8c6e',
+    type           TEXT NOT NULL DEFAULT 'daily'
+                       CHECK(type IN('daily','weekly','times_per_week')),
+    times_per_week INTEGER,
+    sort_order     INTEGER NOT NULL DEFAULT 0,
+    created_at     TEXT DEFAULT (datetime('now')),
+    archived_at    TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS habit_logs (
+    id         TEXT PRIMARY KEY,
+    habit_id   TEXT NOT NULL,
+    date       TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now')),
+    UNIQUE(habit_id, date),
+    FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_habit_logs_habit ON habit_logs(habit_id);
+  CREATE INDEX IF NOT EXISTS idx_habit_logs_date  ON habit_logs(date);
+
+  -- ─────────────────── JOURNAL PLUGIN ──────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS journal_entries (
+    id          TEXT PRIMARY KEY,
+    date        TEXT NOT NULL UNIQUE,
+    content     TEXT NOT NULL DEFAULT '',
+    images      TEXT NOT NULL DEFAULT '[]',
+    created_at  TEXT DEFAULT (datetime('now')),
+    updated_at  TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TRIGGER IF NOT EXISTS journal_ts AFTER UPDATE ON journal_entries
+  BEGIN
+    UPDATE journal_entries SET updated_at = datetime('now') WHERE id = NEW.id;
+  END;
+
+  CREATE INDEX IF NOT EXISTS idx_journal_date ON journal_entries(date);
+
+  -- ─────────────────── ACADEMIC PLUGIN ─────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS academic_subjects (
+    project_id TEXT PRIMARY KEY,
+    sort_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS academic_canvases (
+    id         TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS academic_canvas_nodes (
+    canvas_id   TEXT NOT NULL,
+    node_id     TEXT NOT NULL,
+    day         TEXT NOT NULL,
+    x_slot      INTEGER DEFAULT 0,
+    is_deadline INTEGER DEFAULT 0,
+    PRIMARY KEY (canvas_id, node_id),
+    FOREIGN KEY (canvas_id) REFERENCES academic_canvases(id) ON DELETE CASCADE,
+    FOREIGN KEY (node_id)   REFERENCES nodes(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS academic_canvas_edges (
+    canvas_id    TEXT NOT NULL,
+    from_node_id TEXT NOT NULL,
+    to_node_id   TEXT NOT NULL,
+    PRIMARY KEY (canvas_id, from_node_id, to_node_id),
+    FOREIGN KEY (canvas_id)    REFERENCES academic_canvases(id) ON DELETE CASCADE,
+    FOREIGN KEY (from_node_id) REFERENCES nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (to_node_id)   REFERENCES nodes(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ac_project ON academic_canvases(project_id);
+  CREATE INDEX IF NOT EXISTS idx_acn_canvas ON academic_canvas_nodes(canvas_id);
+  CREATE INDEX IF NOT EXISTS idx_ace_canvas ON academic_canvas_edges(canvas_id);
+
+  -- ─────────────────── ON THE CLOCK ─────────────────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS work_locations (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL UNIQUE,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS work_sessions (
+    id           TEXT PRIMARY KEY,
+    title        TEXT NOT NULL,
+    location_id  TEXT REFERENCES work_locations(id) ON DELETE SET NULL,
+    planned_date TEXT NOT NULL,
+    actual_start TEXT,
+    actual_end   TEXT,
+    status       TEXT NOT NULL DEFAULT 'planned'
+                 CHECK(status IN('planned','active','paused','completed','interrupted')),
+    created_at   TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS session_nodes (
+    session_id    TEXT    NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,
+    node_id       TEXT    NOT NULL,
+    sort_order    INTEGER NOT NULL DEFAULT 0,
+    status        TEXT    NOT NULL DEFAULT 'queued'
+                  CHECK(status IN('queued','in_progress','done','incomplete')),
+    time_started  TEXT,
+    time_finished TEXT,
+    total_minutes REAL,
+    PRIMARY KEY (session_id, node_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS session_pauses (
+    id          TEXT PRIMARY KEY,
+    session_id  TEXT NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,
+    paused_at   TEXT NOT NULL,
+    resumed_at  TEXT,
+    pause_type  TEXT NOT NULL DEFAULT 'manual'
+                CHECK(pause_type IN('manual','pomo_short','pomo_long'))
+  );
+
+  CREATE TABLE IF NOT EXISTS session_pomo_blocks (
+    id          TEXT PRIMARY KEY,
+    session_id  TEXT NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,
+    started_at  TEXT NOT NULL,
+    ended_at    TEXT,
+    block_type  TEXT NOT NULL
+                CHECK(block_type IN('work','short_break','long_break'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ws_status   ON work_sessions(status);
+  CREATE INDEX IF NOT EXISTS idx_ws_date     ON work_sessions(planned_date);
+  CREATE INDEX IF NOT EXISTS idx_sn_session  ON session_nodes(session_id);
+  CREATE INDEX IF NOT EXISTS idx_sp_session  ON session_pauses(session_id);
+  CREATE INDEX IF NOT EXISTS idx_spb_session ON session_pomo_blocks(session_id);
+
+  -- ─────────────────── WARDROBE PLUGIN (wiki) ───────────────────────────────
+
+  CREATE TABLE IF NOT EXISTS wardrobe_wiki_entries (
+    id            TEXT PRIMARY KEY,
+    category      TEXT NOT NULL,
+    title         TEXT NOT NULL,
+    content_plain TEXT,
+    content_json  TEXT,
+    cover_image   TEXT,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TRIGGER IF NOT EXISTS wardrobe_wiki_ts AFTER UPDATE ON wardrobe_wiki_entries
+  BEGIN
+    UPDATE wardrobe_wiki_entries SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  CREATE INDEX IF NOT EXISTS idx_wardrobe_wiki_category ON wardrobe_wiki_entries(category);
+
+  CREATE TABLE IF NOT EXISTS wardrobe_wiki_links (
+    source_id TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    PRIMARY KEY (source_id, target_id),
+    FOREIGN KEY (source_id) REFERENCES wardrobe_wiki_entries(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_id) REFERENCES wardrobe_wiki_entries(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_wardrobe_wiki_links_target ON wardrobe_wiki_links(target_id);
+
+  CREATE TABLE IF NOT EXISTS wardrobe_wiki_gallery_images (
+    id          TEXT PRIMARY KEY,
+    entry_id    TEXT NOT NULL,
+    image_path  TEXT NOT NULL,
+    note        TEXT,
+    sort_order  INTEGER DEFAULT 0,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (entry_id) REFERENCES wardrobe_wiki_entries(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_wardrobe_gallery_entry ON wardrobe_wiki_gallery_images(entry_id);
+
+  -- ─────────────────── WARDROBE PLUGIN (archive / OOTD) ─────────────────────
+
+  CREATE TABLE IF NOT EXISTS wardrobe_items (
+    id             TEXT PRIMARY KEY,
+    name           TEXT NOT NULL,
+    item_type      TEXT NOT NULL,
+    brand          TEXT,
+    purchase_date  TEXT,
+    image_path     TEXT,
+    sizing_json    TEXT,
+    status         TEXT NOT NULL DEFAULT 'active',
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TRIGGER IF NOT EXISTS wardrobe_items_ts AFTER UPDATE ON wardrobe_items
+  BEGIN
+    UPDATE wardrobe_items SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  CREATE INDEX IF NOT EXISTS idx_wardrobe_items_type   ON wardrobe_items(item_type);
+  CREATE INDEX IF NOT EXISTS idx_wardrobe_items_status ON wardrobe_items(status);
+
+  CREATE TABLE IF NOT EXISTS wardrobe_ootd_logs (
+    id          TEXT PRIMARY KEY,
+    date        TEXT NOT NULL UNIQUE,
+    item_ids    TEXT NOT NULL DEFAULT '[]',
+    note        TEXT,
+    photo_path  TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TRIGGER IF NOT EXISTS wardrobe_ootd_ts AFTER UPDATE ON wardrobe_ootd_logs
+  BEGIN
+    UPDATE wardrobe_ootd_logs SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  CREATE INDEX IF NOT EXISTS idx_wardrobe_ootd_date ON wardrobe_ootd_logs(date);
+
+  -- ─────────────────── FILM NEG LAB (photo archive) ─────────────────────────
+
+  CREATE TABLE IF NOT EXISTS filmneg_photos (
+    id            TEXT PRIMARY KEY,
+    title         TEXT,
+    image_path    TEXT NOT NULL,
+    notes         TEXT,
+    taken_at      TEXT,
+    camera        TEXT,
+    film_stock    TEXT,
+    lat           REAL,
+    lng           REAL,
+    location_name TEXT,
+    is_favorite   BOOLEAN NOT NULL DEFAULT 0,
+    rating        INTEGER,
+    width         INTEGER,
+    height        INTEGER,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TRIGGER IF NOT EXISTS filmneg_photos_ts AFTER UPDATE ON filmneg_photos
+  BEGIN
+    UPDATE filmneg_photos SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  CREATE INDEX IF NOT EXISTS idx_filmneg_photos_taken    ON filmneg_photos(taken_at);
+  CREATE INDEX IF NOT EXISTS idx_filmneg_photos_favorite ON filmneg_photos(is_favorite);
+  CREATE INDEX IF NOT EXISTS idx_filmneg_photos_geo      ON filmneg_photos(lat, lng);
+
+  CREATE TABLE IF NOT EXISTS filmneg_tags (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE,
+    color       TEXT NOT NULL DEFAULT '#64c8ff',
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS filmneg_photo_tags (
+    photo_id  TEXT NOT NULL,
+    tag_id    TEXT NOT NULL,
+    PRIMARY KEY (photo_id, tag_id),
+    FOREIGN KEY (photo_id) REFERENCES filmneg_photos(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id)   REFERENCES filmneg_tags(id)   ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_filmneg_pt_photo ON filmneg_photo_tags(photo_id);
+  CREATE INDEX IF NOT EXISTS idx_filmneg_pt_tag   ON filmneg_photo_tags(tag_id);
+
+  CREATE TABLE IF NOT EXISTS filmneg_trails (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT,
+    color       TEXT NOT NULL DEFAULT '#e8a94f',
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TRIGGER IF NOT EXISTS filmneg_trails_ts AFTER UPDATE ON filmneg_trails
+  BEGIN
+    UPDATE filmneg_trails SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+  END;
+
+  CREATE TABLE IF NOT EXISTS filmneg_trail_photos (
+    trail_id    TEXT NOT NULL,
+    photo_id    TEXT NOT NULL,
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (trail_id, photo_id),
+    FOREIGN KEY (trail_id) REFERENCES filmneg_trails(id) ON DELETE CASCADE,
+    FOREIGN KEY (photo_id) REFERENCES filmneg_photos(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_filmneg_tp_trail ON filmneg_trail_photos(trail_id, sort_order);
+  CREATE INDEX IF NOT EXISTS idx_filmneg_tp_photo ON filmneg_trail_photos(photo_id);
+
+  CREATE TABLE IF NOT EXISTS filmneg_cameras (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    type        TEXT NOT NULL DEFAULT 'digital'
+                    CHECK(type IN('digital','film')),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_filmneg_cameras_type ON filmneg_cameras(type);
+    `;
+
+    // Apply the full schema every time
+    await db.execute(schemaSql);
+    console.log("Schema applied/updated successfully.");
+
+    // Column migrations — idempotent (SQLite throws if column already exists)
+    // Drop old routine_occurrences table (replaced by is_routine + routine_id on nodes)
+    try {
+      await db.execute(`DROP TABLE IF EXISTS routine_occurrences`);
+    } catch {
+      /* */
+    }
+
+    const columnMigrations = [
+      `ALTER TABLE nodes ADD COLUMN is_routine INTEGER DEFAULT 0`,
+      `ALTER TABLE nodes ADD COLUMN routine_id TEXT`,
+      // habits v2 schema
+      `ALTER TABLE habits ADD COLUMN value_type TEXT NOT NULL DEFAULT 'boolean'`,
+      `ALTER TABLE habits ADD COLUMN goal_type TEXT NOT NULL DEFAULT 'none'`,
+      `ALTER TABLE habits ADD COLUMN goal_value INTEGER`,
+      `ALTER TABLE habit_logs ADD COLUMN value REAL`,
+      // habits v3 schema
+      `ALTER TABLE habits ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'`,
+      // arcs & projects plugin
+      `ALTER TABLE arcs ADD COLUMN description TEXT DEFAULT ''`,
+      `ALTER TABLE arcs ADD COLUMN status TEXT NOT NULL DEFAULT 'active'`,
+      `ALTER TABLE projects ADD COLUMN description TEXT DEFAULT ''`,
+      `ALTER TABLE projects ADD COLUMN status TEXT NOT NULL DEFAULT 'active'`,
+      `ALTER TABLE projects ADD COLUMN start_date TEXT`,
+      `ALTER TABLE projects ADD COLUMN end_date TEXT`,
+      // film neg lab — link photos to a camera catalog entry
+      `ALTER TABLE filmneg_photos ADD COLUMN camera_id TEXT`,
+    ];
+    for (const sql of columnMigrations) {
+      try {
+        await db.execute(sql);
+      } catch {
+        /* column already exists */
+      }
+    }
+
+    // Remove duplicate routine nodes — must run with FK off to avoid cascade conflicts
+    try {
+      await db.execute(`PRAGMA foreign_keys = OFF`);
+      await db.execute(`
+        DELETE FROM nodes WHERE id NOT IN (
+          SELECT MIN(id) FROM nodes
+          WHERE routine_id IS NOT NULL
+          GROUP BY routine_id, substr(planned_start_at, 1, 10)
+        ) AND routine_id IS NOT NULL
+      `);
+    } catch {
+      /* */
+    } finally {
+      await db.execute(`PRAGMA foreign_keys = ON`);
+    }
+
+    // Indexes that depend on migrated columns — must run after migrations
+    const indexMigrations = [
+      `CREATE INDEX IF NOT EXISTS idx_nodes_routine_id ON nodes(routine_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_nodes_is_routine ON nodes(is_routine)`,
+      `CREATE INDEX IF NOT EXISTS idx_filmneg_photos_camera ON filmneg_photos(camera_id)`,
+    ];
+    for (const sql of indexMigrations) {
+      try {
+        await db.execute(sql);
+      } catch {
+        /* index already exists */
+      }
+    }
+
+    // Trigger migrations — DROP + recreate to apply fixes (IF NOT EXISTS guards against
+    // the schema having already created the correct version in the same init run)
+    await db.execute(`DROP TRIGGER IF EXISTS readd_ungrouped_if_empty`);
+    await db.execute(`
+      CREATE TRIGGER IF NOT EXISTS readd_ungrouped_if_empty AFTER DELETE ON node_groups
+      BEGIN
+        INSERT OR IGNORE INTO node_groups(node_id, group_id)
+        SELECT OLD.node_id, id FROM planner_groups
+        WHERE is_ungrouped = 1
+          AND EXISTS (SELECT 1 FROM nodes WHERE id = OLD.node_id)
+          AND NOT EXISTS (
+            SELECT 1 FROM node_groups WHERE node_id = OLD.node_id
+          );
+      END
+    `);
+
+    // Wardrobe wiki — relax category CHECK constraint to free text, and merge
+    // any pre-existing 'look' entries into 'genre' (SQLite can't ALTER a CHECK
+    // constraint in place, so this rebuilds the table only when the old
+    // constraint is still present).
+    try {
+      const wardrobeTable = await db.select<{ sql: string }[]>(
+        `SELECT sql FROM sqlite_master WHERE type='table' AND name='wardrobe_wiki_entries'`,
+      );
+      if (wardrobeTable[0]?.sql?.includes('CHECK(category')) {
+        await db.execute(`PRAGMA foreign_keys = OFF`);
+        await db.execute(`
+          CREATE TABLE wardrobe_wiki_entries_new (
+            id            TEXT PRIMARY KEY,
+            category      TEXT NOT NULL,
+            title         TEXT NOT NULL,
+            content_plain TEXT,
+            content_json  TEXT,
+            cover_image   TEXT,
+            created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        await db.execute(`
+          INSERT INTO wardrobe_wiki_entries_new
+          SELECT id, CASE WHEN category = 'look' THEN 'genre' ELSE category END,
+                 title, content_plain, content_json, cover_image, created_at, updated_at
+          FROM wardrobe_wiki_entries
+        `);
+        await db.execute(`DROP TABLE wardrobe_wiki_entries`);
+        await db.execute(`ALTER TABLE wardrobe_wiki_entries_new RENAME TO wardrobe_wiki_entries`);
+        await db.execute(`
+          CREATE TRIGGER IF NOT EXISTS wardrobe_wiki_ts AFTER UPDATE ON wardrobe_wiki_entries
+          BEGIN
+            UPDATE wardrobe_wiki_entries SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+          END
+        `);
+        await db.execute(`CREATE INDEX IF NOT EXISTS idx_wardrobe_wiki_category ON wardrobe_wiki_entries(category)`);
+        await db.execute(`PRAGMA foreign_keys = ON`);
+      }
+    } catch {
+      await db.execute(`PRAGMA foreign_keys = ON`).catch(() => {});
+    }
+
+    // Wardrobe wiki — 'creator' category dropped, merged into 'brand' (now "Brands/Designers")
+    await db.execute(`UPDATE wardrobe_wiki_entries SET category = 'brand' WHERE category = 'creator'`).catch(() => {});
+
+    return db;
+  } catch (error) {
+    console.error("Database initialization error:", error);
+    throw error;
+  }
+}
+
+export function getDb(): Database {
+  if (!_db)
+    throw new Error(
+      "Database not initialized. Ensure setupDb() has completed before calling getDb().",
+    );
+  return _db;
+}
