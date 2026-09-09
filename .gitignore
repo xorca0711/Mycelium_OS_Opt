@@ -6,3 +6,9 @@ CLAUDE.md
 
 # Local package-manager cache
 .pnpm-store/
+
+# Local application databases and SQLite sidecars
+*.db
+*.db-wal
+*.db-shm
+*.db-journal

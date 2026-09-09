@@ -15,12 +15,16 @@ Run from `O_neash Dash/`:
 ```powershell
 pnpm install --frozen-lockfile
 pnpm typecheck
+pnpm test
 pnpm build
+cargo test --locked --manifest-path .\src-tauri\Cargo.toml --lib database_tests
 cargo check --locked --manifest-path .\src-tauri\Cargo.toml
 pnpm tauri info
 ```
 
-The checked-in pnpm build policy permits only esbuild's required install script. These checks build/inspect the code without launching the application or creating its personal database. Run `pnpm tauri dev` separately when ready for the next step. There is currently no automated application test suite.
+The checked-in pnpm build policy permits only esbuild's required install script. These checks build/inspect the code using isolated test databases. Run `pnpm tauri dev` to launch the desktop app in a normal, resizable 1100 × 720 window. It starts Vite on port 1420 and the native executable; no database server is required. Keep that terminal running during development.
+
+See the [verified project status](docs/project-status.md), [architecture diagram gallery](docs/architecture/previews.md), [editable draw.io file](docs/architecture/mycelium-architecture.drawio), [customization map](docs/architecture/customization-map.md), and [local database/data-source guide](docs/architecture/local-data-connections.md).
 
 ## Upstream overview
 <div align="center">
@@ -42,7 +46,7 @@ Mycelium is a native desktop application built on Tauri and React. It replaces t
 ## Philosophy
 
 ### 1. Everything is local
-All data lives in a single SQLite database at `~/Documents/O-neash-data/oneash-DB.db`. Nothing leaves your machine. You own the file, you own the schema, you own the history. If you want to query your own task data in a terminal, you can — it's just SQL.
+Personal records live in a local SQLite database. Development builds use `Documents/O-neash-data-dev/oneash-DB.db`; release builds use `Documents/O-neash-data/oneash-DB.db`. Images are separate files under the same environment directory, and appearance/layout preferences use WebView localStorage. Weather, news, research feeds, and geocoding make external requests. There is no built-in Notion or Obsidian synchronization.
 
 ### 2. Structure before speed
 Most productivity apps optimize for fast capture and abandon structure. Mycelium inverts this. Work is organized into a three-tier hierarchy:
@@ -54,7 +58,7 @@ Arcs  →  Projects  →  Nodes
 **Arcs** are long-horizon goals — semester plans, research initiatives, career bets. **Projects** are bounded work units under an arc. **Nodes** are individual tasks or events. This hierarchy isn't bureaucracy; it's the map that makes the territory legible. When you know which arc a task belongs to, you know *why* you're doing it.
 
 ### 3. Time is multidimensional
-A task has at least four time coordinates: when you *plan* to work on it (`planned_start_at`), when it's *due* (`due_at`), how long you *think* it takes (`estimated_duration_minutes`), and how long it *actually* took (`actual_duration_minutes`). Most apps collapse these into a single date. Mycelium keeps them separate because the gap between estimated and actual time is where you learn about yourself.
+A task has several time coordinates: when you plan to work on it (`planned_start_at`), when it is due (`due_at`), expected effort (`estimated_duration_minutes`), and completion time (`actual_completed_at`). Recorded effort is accumulated from `session_nodes.total_minutes` across sessions, including incomplete work carried forward. The current task schema has no `actual_duration_minutes` column.
 
 ### 4. Visual weight encodes meaning
 In the planner's dot view, **a node is a circle**. Its size encodes effort. Its color encodes urgency — computed from importance level and deadline proximity, not manually set. The goal is a view where the shape of your workload is immediately visible without reading a word.

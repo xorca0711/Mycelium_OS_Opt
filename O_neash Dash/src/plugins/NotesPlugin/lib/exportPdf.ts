@@ -233,7 +233,13 @@ export interface ExportPdfParams {
   editorDom: HTMLElement;
 }
 
+let pdfSupport: Promise<boolean> | undefined;
+export function supportsDocumentPdf(): Promise<boolean> {
+  return pdfSupport ??= invoke<boolean>('supports_pdf_export').catch(() => false);
+}
+
 export async function exportDocumentPdf(params: ExportPdfParams): Promise<void> {
+  if (!(await supportsDocumentPdf())) throw new Error('PDF export is available on macOS only.');
   const { title, arc, project, createdAt, updatedAt, editorDom } = params;
 
   // 1. Ask the user where to save before touching the UI.

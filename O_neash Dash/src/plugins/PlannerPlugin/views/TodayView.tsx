@@ -8,6 +8,7 @@ import React, {
 import { createPortal } from "react-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ComposedChart, Bar } from "recharts";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { toast } from "@/components/ui/sonner";
 import {
   motion,
   AnimatePresence,
@@ -297,7 +298,7 @@ export default function TodayView() {
                           node={fullNode}
                           onStartNode={() => sessionStartNode(sn.node_id)}
                           onReturnQueue={() => sessionReturnQueue(sn.node_id)}
-                          onFinish={() => { sessionFinishNode(sn.node_id); if (fullNode) completeNode(fullNode.id); loadAll(); }}
+                          onFinish={() => { void sessionFinishNode(sn.node_id).catch(error => toast.error('Could not finish this task', { description: String(error) })); }}
                           onEdit={() => fullNode && openTaskFormEdit(fullNode)}
                           onRemove={() => sessionRemoveNode(sn.node_id)}
                         />

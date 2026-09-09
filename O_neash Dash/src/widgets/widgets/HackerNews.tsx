@@ -5,6 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { Megaphone, ChevronLeft, ChevronRight } from 'pixelarticons/react';
 import type { WidgetProps } from '../types';
 import { pickDailySample, todaySeed } from '../lib/dailySample';
+import { createFeedCache } from '../lib/feedCache';
 
 /** HBIOS-SYS is the Korean-glyph fallback (VT323 has no Hangul coverage). */
 const FONT = "var(--font-main), var(--font-kr), monospace";
@@ -37,6 +38,9 @@ interface FeedEntry {
   meta: string;
   source: FeedSource;
 }
+
+const feedCache = createFeedCache<FeedEntry>();
+const cachedPool = () => ['HN', 'World', 'Korea'].flatMap(source => feedCache.peek(source));
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -82,7 +86,10 @@ async function fetchRss(url: string, source: 'World' | 'Korea'): Promise<FeedEnt
 }
 
 export function HackerNews({ instanceId }: WidgetProps) {
-  const [pool, setPool]         = useState<FeedEntry[]>([]);
+  const [pool, setPool]         = useState<FeedEntry[]>(() => {
+    const items = cachedPool();
+    return pickDailySample(items, items.length, `news-${todaySeed()}`);
+  });
   const [page, setPage]         = useState(0);
   const [error, setError]       = useState(false);
   const [selected, setSelected] = useState<FeedSource | null>('World');
@@ -90,9 +97,9 @@ export function HackerNews({ instanceId }: WidgetProps) {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetchHN(),
-      fetchRss('https://feeds.bbci.co.uk/news/world/rss.xml', 'World'),
-      fetchRss('https://www.yna.co.kr/rss/news.xml', 'Korea'),
+      feedCache.load('HN', fetchHN),
+      feedCache.load('World', () => fetchRss('https://feeds.bbci.co.uk/news/world/rss.xml', 'World')),
+      feedCache.load('Korea', () => fetchRss('https://www.yna.co.kr/rss/news.xml', 'Korea')),
     ]).then(([hn, world, korea]) => {
       if (cancelled) return;
       const merged = [...hn, ...world, ...korea];

@@ -1,6 +1,29 @@
 import { motion, AnimatePresence } from "framer-motion";
 import HomePage from "../home/HomePage";
 import usePluginStore from "../store/usePluginStore";
+import { Component, Suspense, type ReactNode, type ErrorInfo } from "react";
+
+class PluginErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() { return { failed: true }; }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('Plugin could not open', error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <div role="alert" className="h-full flex flex-col items-center justify-center gap-4">
+          <p>This app could not open. You can return home.</p>
+          <button onClick={() => usePluginStore.getState().setActivePlugin(null)}>Return home</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function PluginBox() {
   const plugins = usePluginStore((state) => state.plugins);
@@ -19,7 +42,11 @@ function PluginBox() {
           transition={{ duration: 0.3 }}
           className="h-full w-full"
         >
-          <ComponentToRender />
+          <PluginErrorBoundary>
+            <Suspense fallback={<div role="status" className="h-full flex items-center justify-center">Opening {selectedPlugin?.name ?? 'home'}...</div>}>
+              <ComponentToRender />
+            </Suspense>
+          </PluginErrorBoundary>
         </motion.div>
       </AnimatePresence>
     </div>

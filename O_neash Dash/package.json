@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.node.json --noEmit",
+    "test": "node --test tests/*.test.ts tests/*.test.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri"

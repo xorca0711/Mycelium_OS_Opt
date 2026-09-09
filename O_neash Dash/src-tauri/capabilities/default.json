@@ -11,6 +11,7 @@
     "sql:allow-select",
     "fs:allow-app-read-recursive",
     "core:window:allow-start-dragging",
+    "core:window:allow-destroy",
     "core:webview:allow-print",
     "dialog:allow-save",
     "dialog:allow-open",

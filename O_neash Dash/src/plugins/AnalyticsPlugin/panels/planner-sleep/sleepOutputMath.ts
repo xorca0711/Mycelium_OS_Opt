@@ -1,7 +1,8 @@
-import { getEntries } from "../../../SleepTrackerPlugin/lib/sleepDb";
+import { loadAnalyticsSleep } from './sleepWindowData';
+import { analyticsRange, buildWakingWindows } from './sleepWindows';
 import { loadIrfTaskData } from "../../../PlannerPlugin/lib/plannerDb";
 import type { IrfTaskRecord } from "../../../PlannerPlugin/lib/plannerDb";
-import { loadAllDoneSessionNodeMinutes } from "../../../PlannerPlugin/lib/onTheClockDb";
+import { loadTaskSessionMinutes } from "../../../PlannerPlugin/lib/onTheClockDb";
 
 export interface DayPoint {
   sleepH:    number;
@@ -29,10 +30,11 @@ export interface ScatterResult {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export async function computeScatter(): Promise<ScatterResult | null> {
+  const range = analyticsRange(90);
   const [sleepEntries, tasks, sessionMins] = await Promise.all([
-    getEntries(90),
-    loadIrfTaskData(90),
-    loadAllDoneSessionNodeMinutes(),
+    loadAnalyticsSleep(range),
+    loadIrfTaskData(90, new Date(range.untilMs)),
+    loadTaskSessionMinutes(),
   ]);
 
   // node_id → actual minutes spent in a session
@@ -42,25 +44,8 @@ export async function computeScatter(): Promise<ScatterResult | null> {
   const avgSessionMinutes = sessionMins.length > 0
     ? sessionMins.reduce((s, v) => s + v.total_minutes, 0) / sessionMins.length
     : 30;
-  if (sleepEntries.length < 14) return null;
-
-  const sorted = [...sleepEntries].sort(
-    (a, b) => new Date(a.sleep_start).getTime() - new Date(b.sleep_start).getTime(),
-  );
-
-  const days = sorted.map((e, i) => {
-    const wakeMs  = new Date(e.wake_time).getTime();
-    const sleepMs = i < sorted.length - 1
-      ? new Date(sorted[i + 1].sleep_start).getTime()
-      : Date.now();
-    return {
-      wakeMs,
-      sleepMs,
-      wakingHours:    Math.max(0.5, Math.min(20, (sleepMs - wakeMs) / 3_600_000)),
-      sleepDurationH: (wakeMs - new Date(e.sleep_start).getTime()) / 3_600_000,
-      cpsRate: 0,
-    };
-  });
+  const days = buildWakingWindows(sleepEntries, range).map(window => ({ ...window, cpsRate: 0 }));
+  if (days.length < 14) return null;
 
   const dayCount: number[]    = days.map(() => 0);
   const dayDuration: number[] = days.map(() => 0);

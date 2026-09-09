@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import * as otc from '../lib/onTheClockDb';
+import { usePlannerStore } from './usePlannerStore';
 
 export type { WorkLocation, WorkSession, SessionNodeWithNode, SessionPause, BrowsableNode } from '../lib/onTheClockDb';
 
@@ -106,7 +107,6 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     const { activeSession } = get();
     if (!activeSession) return;
     await otc.carryOverUnfinished(activeSession.id);
-    await otc.endSession(activeSession.id, 'interrupted');
     await get().load();
   },
 
@@ -114,7 +114,6 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     const { activeSession } = get();
     if (!activeSession) return;
     await otc.moveUnfinishedToSession(activeSession.id, targetSessionId);
-    await otc.endSession(activeSession.id, 'interrupted');
     await get().load();
   },
 
@@ -122,7 +121,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     const { activeSession } = get();
     if (!activeSession) return;
     await otc.markAllNodesDone(activeSession.id);
-    await otc.endSession(activeSession.id, 'completed');
+    await Promise.all(get().activeSessionNodes.map(n => usePlannerStore.getState().refreshNode(n.node_id)));
     await get().load();
   },
 
@@ -137,6 +136,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     const { activeSession } = get();
     if (!activeSession) return;
     await otc.finishNode(activeSession.id, nodeId);
+    await usePlannerStore.getState().refreshNode(nodeId);
     await get().reloadNodes();
   },
 

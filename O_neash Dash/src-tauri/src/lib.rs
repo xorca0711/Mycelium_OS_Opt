@@ -1,5 +1,8 @@
-use tauri::Manager;
-use std::fs;
+mod database;
+
+#[cfg(test)]
+#[path = "../tests/database.rs"]
+mod database_tests;
 
 // ── macOS: native WKWebView PDF export ───────────────────────────────────────
 //
@@ -100,6 +103,11 @@ async fn export_pdf_native(
 
 // ── App entry point ───────────────────────────────────────────────────────────
 
+#[tauri::command]
+fn supports_pdf_export() -> bool {
+    cfg!(target_os = "macos")
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -108,18 +116,13 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
-        .setup(|app| {
-            let mut db_dir = app
-                .path()
-                .document_dir()
-                .expect("Failed to get user's Documents directory");
-            db_dir.push("O-neash-data");
-            fs::create_dir_all(&db_dir)
-                .expect("Failed to create O-neash-data directory in Documents");
-            println!("Database directory ready at: {:?}", db_dir);
-            Ok(())
-        })
-        .invoke_handler(tauri::generate_handler![export_pdf_native])
+        .invoke_handler(tauri::generate_handler![
+            export_pdf_native,
+            supports_pdf_export,
+            database::get_data_location,
+            database::initialize_database,
+            database::execute_batch,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

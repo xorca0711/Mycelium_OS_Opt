@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ClockPlugin from "../plugins/ClockPlugin/ClockPlugin";
 import { LaunchMenu } from "./LaunchMenu";
-import { WidgetPanel } from "../widgets/WidgetPanel";
 import { HackerNews } from "../widgets/widgets/HackerNews";
 import { ResearchFeed } from "../widgets/widgets/ResearchFeed";
 import { usePlannerStore } from "../plugins/PlannerPlugin/store/usePlannerStore";
@@ -174,10 +173,6 @@ function HomePage() {
         <QuotePanel />
       </div>
 
-      {/* ── Widget panel — hidden, code preserved ── */}
-      <div style={{ display: "none" }}>
-        <WidgetPanel />
-      </div>
     </div>
   );
 }

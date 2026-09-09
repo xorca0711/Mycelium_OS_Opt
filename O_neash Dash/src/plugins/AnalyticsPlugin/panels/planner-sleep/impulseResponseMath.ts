@@ -1,5 +1,6 @@
 import type { SleepEntry } from "../../../SleepTrackerPlugin/lib/sleepDb";
 import type { IrfTaskRecord } from "../../../PlannerPlugin/lib/plannerDb";
+import { analyticsRange, buildWakingWindows, WINDOW_ASSUMPTION } from './sleepWindows.ts';
 
 export const LAGS = [-1, 0, 1, 2, 3, 4] as const;
 const MIN_BASELINE_DAYS = 5;
@@ -10,6 +11,7 @@ interface DayRecord {
   wakingHours: number;
   sleepDurationH: number;
   cpsRate: number;
+  dayNumber: number;
 }
 
 export interface IrfResult {
@@ -46,27 +48,11 @@ function arrStd(xs: number[]): number {
 export function computeIrf(
   sleepEntries: SleepEntry[],
   tasks: IrfTaskRecord[],
+  now = new Date(),
 ): IrfResult | null {
-  if (sleepEntries.length < 14) return null;
-
-  const sorted = [...sleepEntries].sort(
-    (a, b) => new Date(a.sleep_start).getTime() - new Date(b.sleep_start).getTime(),
-  );
-
-  // Build chrono days: day i spans [wake_i, sleep_{i+1})
-  const days: DayRecord[] = sorted.map((e, i) => {
-    const wakeMs = new Date(e.wake_time).getTime();
-    const sleepMs = i < sorted.length - 1
-      ? new Date(sorted[i + 1].sleep_start).getTime()
-      : Date.now();
-    return {
-      wakeMs,
-      sleepMs,
-      wakingHours: Math.max(0.5, Math.min(20, (sleepMs - wakeMs) / 3_600_000)),
-      sleepDurationH: (wakeMs - new Date(e.sleep_start).getTime()) / 3_600_000,
-      cpsRate: 0,
-    };
-  });
+  const days: DayRecord[] = buildWakingWindows(sleepEntries, analyticsRange(90, now))
+    .map(window => ({ ...window, cpsRate: 0 }));
+  if (days.length < 14) return null;
 
   // Assign tasks → days; compute CPS rate = sqrt(count × totalDuration) / wakingHours
   const dayCount: number[]    = days.map(() => 0);
@@ -104,8 +90,11 @@ export function computeIrf(
   // Build per-shock trajectories (normalized: baseline = 1.0)
   const allTraj: (number | null)[][] = shockIndices.map(si =>
     LAGS.map(lag => {
-      const idx = si + lag;
-      if (idx < 0 || idx >= days.length) return null;
+      // D+1 means the next local calendar day, not the next available log.
+      const matching = days.map((day, idx) => ({ day, idx }))
+        .filter(({ day }) => day.dayNumber === days[si].dayNumber + lag);
+      if (matching.length !== 1) return null;
+      const idx = matching[0].idx;
       if (lag !== 0 && shockSet.has(idx)) return null; // adjacent shock → skip
       return days[idx].cpsRate / baseline;
     }),
@@ -152,5 +141,6 @@ export function buildIrfInsights(r: IrfResult): string[] {
     `${r.shockCount} BAD NIGHTS  ·  BOTTOM 20%  ·  ≤${r.shockThreshH.toFixed(1)}H`,
     `PEAK DIP: ${lagLabel}  ·  OUTPUT ${dipPct}% OF BASELINE`,
     recoveryStr,
+    WINDOW_ASSUMPTION,
   ];
 }

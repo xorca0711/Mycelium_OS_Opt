@@ -1,5 +1,6 @@
 import { writeFile, mkdir, exists, readDir, remove, readFile } from '@tauri-apps/plugin-fs';
-import { documentDir, join } from '@tauri-apps/api/path';
+import { join } from '@tauri-apps/api/path';
+import { dataSubdirectory } from '@/lib/dataLocation';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { parse as parseExif } from 'exifr';
 import { getDb } from '@/lib/db';
@@ -7,8 +8,7 @@ import { getDb } from '@/lib/db';
 const gid = () => Math.random().toString(36).slice(2, 18);
 
 async function imagesDir(): Promise<string> {
-  const docs = await documentDir();
-  return join(docs, 'O-neash-data', 'filmneg-images');
+  return dataSubdirectory('filmneg-images');
 }
 
 export interface ExtractedExif {

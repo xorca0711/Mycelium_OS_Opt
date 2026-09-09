@@ -5,6 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { ClipboardNote, ChevronLeft, ChevronRight } from 'pixelarticons/react';
 import type { WidgetProps } from '../types';
 import { pickDailySample, todaySeed } from '../lib/dailySample';
+import { createFeedCache } from '../lib/feedCache';
 
 const FONT   = "var(--font-main), var(--font-kr), monospace";
 const PURPLE = '#a78bfa';
@@ -35,6 +36,9 @@ interface JournalEntry {
   date: string;
   source: JournalSource;
 }
+
+const feedCache = createFeedCache<JournalEntry>();
+const cachedPool = () => ['Nature', 'Cell'].flatMap(source => feedCache.peek(source));
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -117,7 +121,10 @@ async function fetchJournal(url: string, source: JournalSource): Promise<Journal
 }
 
 export function ResearchFeed({ instanceId }: WidgetProps) {
-  const [pool, setPool]         = useState<JournalEntry[]>([]);
+  const [pool, setPool]         = useState<JournalEntry[]>(() => {
+    const items = cachedPool();
+    return pickDailySample(items, items.length, `journals-${todaySeed()}`);
+  });
   const [page, setPage]         = useState(0);
   const [error, setError]       = useState(false);
   const [selected, setSelected] = useState<JournalSource | null>('Cell');
@@ -125,8 +132,8 @@ export function ResearchFeed({ instanceId }: WidgetProps) {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetchJournal('https://www.nature.com/nature.rss', 'Nature'),
-      fetchJournal('https://www.cell.com/cell/current.rss', 'Cell'),
+      feedCache.load('Nature', () => fetchJournal('https://www.nature.com/nature.rss', 'Nature')),
+      feedCache.load('Cell', () => fetchJournal('https://www.cell.com/cell/current.rss', 'Cell')),
     ]).then(([nature, cell]) => {
       if (cancelled) return;
       const merged = [...nature, ...cell];

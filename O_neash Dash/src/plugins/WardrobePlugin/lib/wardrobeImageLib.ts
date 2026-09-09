@@ -1,13 +1,13 @@
 import { writeFile, mkdir, exists, readDir, remove, readFile } from '@tauri-apps/plugin-fs';
-import { documentDir, join } from '@tauri-apps/api/path';
+import { join } from '@tauri-apps/api/path';
+import { dataSubdirectory } from '@/lib/dataLocation';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { getDb } from '@/lib/db';
 
 const gid = () => Math.random().toString(36).slice(2, 18);
 
 async function imagesDir(): Promise<string> {
-  const docs = await documentDir();
-  return join(docs, 'O-neash-data', 'wardrobe-images');
+  return dataSubdirectory('wardrobe-images');
 }
 
 /** Save a Blob to the wardrobe-images folder. Returns the absolute path. */
