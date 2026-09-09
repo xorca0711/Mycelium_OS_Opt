@@ -1,0 +1,54 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "fs:allow-app-read-recursive",
+  "description": "Capability for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "sql:default",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "fs:allow-app-read-recursive",
+    "core:window:allow-start-dragging",
+    "core:webview:allow-print",
+    "dialog:allow-save",
+    "dialog:allow-open",
+    "fs:allow-read-file",
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [{ "path": "$DOCUMENT/**" }]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [{ "path": "$DOCUMENT/**" }]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [{ "path": "$DOCUMENT/**" }]
+    },
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [{ "path": "$DOCUMENT/**" }]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [{ "path": "$DOCUMENT/**" }]
+    },
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://hn.algolia.com/*" },
+        { "url": "https://www.nature.com/*" },
+        { "url": "https://www.cell.com/*" },
+        { "url": "https://feeds.bbci.co.uk/*" },
+        { "url": "https://www.yna.co.kr/*" },
+        { "url": "https://geocoding-api.open-meteo.com/*" },
+        { "url": "https://api.open-meteo.com/*" },
+        { "url": "https://ron-swanson-quotes.herokuapp.com/*" },
+        { "url": "https://*.basemaps.cartocdn.com/*" },
+        { "url": "https://nominatim.openstreetmap.org/*" }
+      ]
+    }
+  ]
+}
