@@ -56,7 +56,7 @@ fn fresh_database_has_versioned_schema_and_enforces_foreign_keys() {
     tauri::async_runtime::block_on(async {
         let mut connection = memory_connection().await;
         migrations::migrate(&mut connection).await.unwrap();
-        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 4);
+        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 5);
         let columns = sqlx::query("PRAGMA table_info(habits)").fetch_all(&mut connection).await.unwrap();
         assert!(columns.iter().any(|column| column.get::<String, _>("name") == "source"));
         assert!(sqlx::query("INSERT INTO note_title_aliases VALUES ('missing','Title')")
@@ -114,7 +114,7 @@ fn migration_failure_rolls_back_schema_data_and_version_records() {
         let foreign_keys: i64 = sqlx::query_scalar("PRAGMA foreign_keys").fetch_one(&mut connection).await.unwrap();
         assert_eq!(foreign_keys, 1);
         migrations::migrate(&mut connection).await.unwrap();
-        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 4);
+        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 5);
     });
 }
 
@@ -186,4 +186,43 @@ fn development_and_release_directories_are_distinct() {
     let documents = std::path::Path::new("example-documents");
     assert_eq!(data_directory(documents, false), documents.join("O-neash-data"));
     assert_eq!(data_directory(documents, true), documents.join("O-neash-data-dev"));
+}
+
+#[test]
+fn settings_v5_upgrade_is_atomic_and_repeated_migrations_preserve_revisions() {
+    tauri::async_runtime::block_on(async {
+        let mut connection = memory_connection().await;
+        migrations::migrate(&mut connection).await.unwrap();
+        // Reconstruct the exact v4 schema, with existing capacity and a linked task.
+        sqlx::raw_sql("DROP TABLE personal_settings; DROP TABLE personal_settings_history;
+            DELETE FROM mycelium_schema_migrations WHERE version=5;
+            UPDATE user_capacity SET daily_minutes=345,peak_start='10:00' WHERE id='default';
+            INSERT INTO nodes(id,title) VALUES ('keep','Existing task');")
+            .execute(&mut connection).await.unwrap();
+        assert!(migrations::migrate_with_failure(&mut connection, Some(5)).await.is_err());
+        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 4);
+        let tables: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE name LIKE 'personal_settings%'")
+            .fetch_one(&mut connection).await.unwrap();
+        assert_eq!(tables, 0);
+        migrations::migrate(&mut connection).await.unwrap();
+        assert_eq!(count(&mut connection, "personal_settings").await, 0);
+        let capacity: (i64, String) = sqlx::query_as("SELECT daily_minutes,peak_start FROM user_capacity WHERE id='default'")
+            .fetch_one(&mut connection).await.unwrap();
+        assert_eq!(capacity, (345, "10:00".into()));
+        let document = json!({"schemaVersion": 1, "displayName": "Keep this revision"}).to_string();
+        sqlx::query("INSERT INTO personal_settings VALUES ('current',1,1,?,'2026-09-09')")
+            .bind(&document).execute(&mut connection).await.unwrap();
+        sqlx::query("INSERT INTO personal_settings_history SELECT revision,schema_version,settings_json,saved_at FROM personal_settings")
+            .execute(&mut connection).await.unwrap();
+        for _ in 0..2 { migrations::migrate(&mut connection).await.unwrap(); }
+        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 5);
+        assert_eq!(count(&mut connection, "nodes").await, 1);
+        assert_eq!(count(&mut connection, "node_groups").await, 1);
+        for table in ["personal_settings", "personal_settings_history"] {
+            assert_eq!(count(&mut connection, table).await, 1);
+            let saved: String = sqlx::query_scalar(&format!("SELECT settings_json FROM {table}"))
+                .fetch_one(&mut connection).await.unwrap();
+            assert_eq!(saved, document);
+        }
+    });
 }

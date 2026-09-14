@@ -1,6 +1,6 @@
 # SQLite schema inventory
 
-Generated from source schema and additive migrations through version 4. **46 application tables, one SQLite file.** Internal SQLite tables (for example sqlite_sequence) are excluded. No personal database was inspected.
+Generated from source schema and additive migrations through version 5. **48 application tables, one SQLite file.** Internal SQLite tables (for example sqlite_sequence) are excluded. No personal database was inspected.
 
 Fresh-install constraints are shown. Existing databases retain historical columns/tables; adding an old missing column does not recreate fresh-schema foreign keys. `routine_occurrences` is preserved when present, but not created by the current schema. `note_task_links` is referenced by legacy planner code but is not declared by the current schema; its existence and constraints are not assumed. The version ledger is `mycelium_schema_migrations`, not a `schema_version` table.
 
@@ -324,6 +324,29 @@ Fresh-install constraints are shown. Existing databases retain historical column
 | created_at | TIMESTAMP |  | — | CURRENT_TIMESTAMP |
 | updated_at | TIMESTAMP |  | — | CURRENT_TIMESTAMP |
 
+## personal_settings
+
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/settings.sql)
+
+| Column | SQLite type | Key | Required | Default |
+|---|---|---|---|---|
+| id | TEXT | PK(1) | — | — |
+| revision | INTEGER |  | NOT NULL | — |
+| schema_version | INTEGER |  | NOT NULL | — |
+| settings_json | TEXT |  | NOT NULL | — |
+| saved_at | TEXT |  | NOT NULL | — |
+
+## personal_settings_history
+
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/settings.sql)
+
+| Column | SQLite type | Key | Required | Default |
+|---|---|---|---|---|
+| revision | INTEGER | PK(1) | — | — |
+| schema_version | INTEGER |  | NOT NULL | — |
+| settings_json | TEXT |  | NOT NULL | — |
+| saved_at | TEXT |  | NOT NULL | — |
+
 ## planner_groups
 
 [Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
@@ -604,6 +627,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 | From | To | Enforcement |
 |---|---|---|
+| personal_settings.revision | personal_settings_history.revision | Application / JSON convention |
 | tendril_edges.project_id | projects.id | Application / JSON convention |
 | session_nodes.node_id | nodes.id | Application / JSON convention |
 | academic_subjects.project_id | projects.id | Application / JSON convention |

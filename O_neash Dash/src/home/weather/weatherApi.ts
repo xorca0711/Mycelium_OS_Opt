@@ -1,3 +1,4 @@
+import { canFetchFeed } from '../../lib/personalFeatures';
 import { fetch } from "@tauri-apps/plugin-http";
 
 export interface GeocodeResult {
@@ -20,6 +21,7 @@ export interface CurrentWeather {
 }
 
 export async function geocodeCity(query: string): Promise<GeocodeResult[]> {
+  if (!canFetchFeed('weather')) return [];
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`;
   const res = await fetch(url);
   if (!res.ok) return [];
@@ -34,6 +36,7 @@ export async function geocodeCity(query: string): Promise<GeocodeResult[]> {
 }
 
 export async function fetchCurrentWeather(lat: number, lon: number): Promise<CurrentWeather | null> {
+  if (!canFetchFeed('weather')) return null;
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min&past_days=1&forecast_days=6&timezone=auto`;
   const res = await fetch(url);
   if (!res.ok) return null;

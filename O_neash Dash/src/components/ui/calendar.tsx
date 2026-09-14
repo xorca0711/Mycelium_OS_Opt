@@ -10,6 +10,8 @@ import { DayPicker, getDefaultClassNames, type DayButtonProps } from "react-day-
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { usePersonalSettingsStore } from '../../store/usePersonalSettingsStore';
+import { enUS, ko } from 'date-fns/locale';
 
 function Calendar({
   className,
@@ -24,9 +26,13 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
   const defaultClassNames = getDefaultClassNames()
+  const settings = usePersonalSettingsStore(s => s.settings);
+  const locale = settings.locale === 'system' ? (typeof navigator === 'undefined' ? 'en-US' : navigator.language) : settings.locale;
 
   return (
     <DayPicker
+      weekStartsOn={settings.weekStartsOn}
+      locale={locale.startsWith('ko') ? ko : enUS}
       showOutsideDays={showOutsideDays}
       className={cn(
         "bg-background group/calendar p-3 [--cell-size:2rem] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
@@ -37,7 +43,7 @@ function Calendar({
       captionLayout={captionLayout}
       formatters={{
         formatMonthDropdown: (date) =>
-          date.toLocaleString("default", { month: "short" }),
+          date.toLocaleString(locale, { month: "short" }),
         ...formatters,
       }}
       classNames={{

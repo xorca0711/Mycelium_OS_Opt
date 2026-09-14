@@ -1,3 +1,4 @@
+import { FeedGate, canFetchFeed } from '../../lib/personalFeatures';
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetch } from '@tauri-apps/plugin-http';
@@ -102,6 +103,7 @@ function parseRss(xml: string, source: JournalSource): JournalEntry[] {
 /** Nature's RSS endpoint intermittently routes through a cookie-gated redirect chain that a fresh request usually avoids, so retry before giving up. */
 async function fetchJournal(url: string, source: JournalSource): Promise<JournalEntry[]> {
   for (let attempt = 0; attempt < FETCH_RETRY_ATTEMPTS; attempt++) {
+    if (!canFetchFeed('research')) return [];
     try {
       const res = await fetch(url);
       if (res.ok) {
@@ -120,7 +122,11 @@ async function fetchJournal(url: string, source: JournalSource): Promise<Journal
   return [];
 }
 
-export function ResearchFeed({ instanceId }: WidgetProps) {
+export function ResearchFeed(props: WidgetProps) {
+  return <FeedGate feature="research"><ResearchFeedContent {...props}/></FeedGate>;
+}
+
+function ResearchFeedContent({ instanceId }: WidgetProps) {
   const [pool, setPool]         = useState<JournalEntry[]>(() => {
     const items = cachedPool();
     return pickDailySample(items, items.length, `journals-${todaySeed()}`);

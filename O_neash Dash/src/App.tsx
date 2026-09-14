@@ -11,6 +11,8 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { toast } from "./components/ui/sonner";
 import { useNotesStore } from "./plugins/NotesPlugin/store/useNotesStore";
 import { createCloseGuard } from "./plugins/NotesPlugin/lib/closeGuard";
+import { usePersonalSettingsStore } from "./store/usePersonalSettingsStore";
+import usePluginStore from "./store/usePluginStore";
 
 initFontSettings();
 
@@ -63,6 +65,13 @@ function App() {
     const initApp = async () => {
       try {
         await setupDb();
+        try {
+          await usePersonalSettingsStore.getState().load();
+          if (usePersonalSettingsStore.getState().error) usePluginStore.getState().setActivePlugin('settings');
+        } catch (settingsError) {
+          console.error('Personal settings could not load:', settingsError);
+          usePluginStore.getState().setActivePlugin('settings');
+        }
         setDbReady(true);
         console.log("Database and Directory Handshake Complete.");
       } catch (err) {

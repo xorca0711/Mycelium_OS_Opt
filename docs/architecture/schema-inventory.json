@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "provenance": "Source-only fresh-install schema; no personal database opened",
   "tables": [
     {
@@ -1637,6 +1637,94 @@
       ]
     },
     {
+      "name": "personal_settings",
+      "sql": "CREATE TABLE personal_settings (\n  id TEXT PRIMARY KEY CHECK (id = 'current'),\n  revision INTEGER NOT NULL CHECK (revision > 0),\n  schema_version INTEGER NOT NULL CHECK (schema_version > 0),\n  settings_json TEXT NOT NULL CHECK (json_valid(settings_json)),\n  saved_at TEXT NOT NULL\n)",
+      "source": "src-tauri/src/database/schema/settings.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "schema_version",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "settings_json",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "saved_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "personal_settings_history",
+      "sql": "CREATE TABLE personal_settings_history (\n  revision INTEGER PRIMARY KEY CHECK (revision > 0),\n  schema_version INTEGER NOT NULL CHECK (schema_version > 0),\n  settings_json TEXT NOT NULL CHECK (json_valid(settings_json)),\n  saved_at TEXT NOT NULL\n)",
+      "source": "src-tauri/src/database/schema/settings.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "schema_version",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "settings_json",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "saved_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": []
+    },
+    {
       "name": "planner_groups",
       "sql": "CREATE TABLE planner_groups (\r\n    id             TEXT PRIMARY KEY,\r\n    name           TEXT NOT NULL,\r\n    color_hex      TEXT DEFAULT '#64c8ff',\r\n    sort_order     INTEGER DEFAULT 0,\r\n    is_ungrouped   BOOLEAN DEFAULT 0,\r\n    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
       "source": "src-tauri/src/database/schema/planner.sql",
@@ -3021,6 +3109,12 @@
     }
   ],
   "logicalJoins": [
+    [
+      "personal_settings",
+      "revision",
+      "personal_settings_history",
+      "revision"
+    ],
     [
       "tendril_edges",
       "project_id",

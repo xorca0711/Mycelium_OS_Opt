@@ -1,3 +1,5 @@
+import { usePersonalSettingsStore } from '../../../store/usePersonalSettingsStore';
+import { analyticsSelection } from '../../../lib/personalFeaturePolicy';
 import { useState } from "react";
 import PlannerPanel from "../panels/planner/PlannerPanel";
 import SleepPanel from "../panels/sleep/SleepPanel";
@@ -6,18 +8,14 @@ import PlannerSleepPanel from "../panels/planner-sleep/PlannerSleepPanel";
 const VT = "var(--font-main), var(--font-kr), monospace";
 
 interface PluginDef {
-  id: string;
+  id: "planner" | "sleep";
   label: string;
   color: string;
 }
 
 const PLUGINS: PluginDef[] = [
   { id: "planner",  label: "Planner",          color: "#00c4a7" },
-  { id: "academic", label: "Deep Planner",       color: "#818cf8" },
   { id: "sleep",    label: "Sleep Tracker",     color: "#60a5fa" },
-  { id: "journal",  label: "Journal",           color: "#f472b6" },
-  { id: "habits",   label: "Habits",            color: "#4ade80" },
-  { id: "esra",     label: "L'ESRA",            color: "#fb923c" },
 ];
 
 function PluginChip({
@@ -56,53 +54,12 @@ function PluginChip({
   );
 }
 
-function GraphCard({ title, insight }: { title: string; insight: string }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
-      <div
-        style={{
-          aspectRatio: "1 / 1",
-        maxWidth: "95%",
-        margin: "0 auto",
-          border: "1px solid rgba(255,255,255,0.1)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
-        }}
-      >
-        <span
-          style={{
-            fontFamily: VT,
-            fontSize: "1rem",
-            letterSpacing: "3px",
-            textTransform: "uppercase",
-            color: "rgba(255,255,255,0.1)",
-          }}
-        >
-          {title}
-        </span>
-      </div>
-      <div
-        style={{
-          paddingTop: "0.75rem",
-          fontFamily: VT,
-          fontSize: "1rem",
-          letterSpacing: "1.5px",
-          color: "rgba(255,255,255,0.35)",
-          textTransform: "uppercase",
-          textAlign: "center",
-          lineHeight: 1.4,
-        }}
-      >
-        {insight}
-      </div>
-    </div>
-  );
-}
-
 export default function HubView() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const { settings, loaded, error } = usePersonalSettingsStore();
+  const ready = loaded && !error;
+  const available = PLUGINS.filter(plugin => ready && settings.analytics[plugin.id]);
+  const selection = analyticsSelection(selected, settings.analytics, ready);
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -160,7 +117,7 @@ export default function HubView() {
               textTransform: "uppercase",
             }}
           >
-            select one or more plugins
+            {available.length ? "select one or more data sources" : "Enable Planner or Sleep analytics in Settings"}
           </div>
         </div>
 
@@ -172,7 +129,7 @@ export default function HubView() {
             justifyContent: "center",
           }}
         >
-          {PLUGINS.map((p) => (
+          {available.map((p) => (
             <PluginChip
               key={p.id}
               plugin={p}
@@ -184,7 +141,7 @@ export default function HubView() {
       </div>
 
       {/* Graph grid — appears when a plugin is selected */}
-      {selected.size > 0 && (
+      {selection !== null && (
         <div
           style={{
             width: "100%",
@@ -194,34 +151,13 @@ export default function HubView() {
             flexShrink: 0,
           }}
         >
-          {selected.size === 1 && selected.has("planner") ? (
+          {selection === "planner" ? (
             <PlannerPanel />
-          ) : selected.size === 1 && selected.has("sleep") ? (
+          ) : selection === "sleep" ? (
             <SleepPanel />
-          ) : selected.has("planner") && selected.has("sleep") ? (
+          ) : selection === "combined" ? (
             <PlannerSleepPanel />
-          ) : (
-            <>
-              <div style={{ display: "flex", gap: "0.75rem" }}>
-                <GraphCard title="graph 1" insight="coming soon" />
-                <GraphCard title="graph 2" insight="coming soon" />
-                <GraphCard title="graph 3" insight="coming soon" />
-              </div>
-              <div
-                style={{
-                  textAlign: "center",
-                  fontFamily: VT,
-                  fontSize: "1.05rem",
-                  letterSpacing: "2px",
-                  color: "rgba(255,255,255,0.2)",
-                  textTransform: "uppercase",
-                  flexShrink: 0,
-                }}
-              >
-                final insight · coming soon
-              </div>
-            </>
-          )}
+          ) : null}
         </div>
       )}
     </div>

@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
+import { usePersonalSettingsStore } from '../../store/usePersonalSettingsStore';
+import { dailyCapacity } from '../../plugins/PlannerPlugin/lib/planningPreferences';
 import { SpeedSlow } from 'pixelarticons/react/SpeedSlow';
 import { computePressureScore } from '../../plugins/PlannerPlugin/lib/logicEngine';
 import { usePlannerStore } from '../../plugins/PlannerPlugin/store/usePlannerStore';
@@ -76,12 +78,14 @@ const LABELS: Array<{ level: PressureLevel; x: number; y: number; anchor: 'start
 
 export function PressureGauge({ }: WidgetProps) {
   const nodes = usePlannerStore(s => s.nodes);
-  const now   = new Date();
+  const settings = usePersonalSettingsStore(s => s.settings);
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => { const timer = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(timer); }, []);
+  const capacity = dailyCapacity(settings, now);
 
   const result = useMemo(
-    () => computePressureScore(nodes, 360, now),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nodes],
+    () => computePressureScore(nodes, capacity, now),
+    [nodes, capacity, now],
   );
 
   const { score, level } = result;

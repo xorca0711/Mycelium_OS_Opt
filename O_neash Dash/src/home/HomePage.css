@@ -1,0 +1,19 @@
+.personal-home { overflow-y: auto; overflow-x: hidden; min-height: 0; }
+.personal-home-grid { width: min(100%, 1280px); padding: 70px 0 100px; box-sizing: border-box; }
+.personal-home-header { flex-wrap: wrap; gap: 12px; min-width: 0; }
+.personal-home-feeds, .personal-home-launcher { min-width: 0; max-width: 100%; }
+.personal-home-quote { max-width: calc(100% - 48px); }
+@media (max-width: 1350px) {
+  .personal-home { display: block !important; padding: 0 48px !important; }
+  .personal-home-grid { grid-template-columns: minmax(0, 1fr) !important; row-gap: 28px !important; padding-bottom: 32px; }
+  .personal-home-header { grid-column: 1 !important; }
+  .personal-home-feeds { grid-column: 1 !important; grid-row: 3 !important; width: 100% !important; }
+  .personal-home-launcher { grid-column: 1 !important; grid-row: 2 !important; }
+  .personal-home-quote { position: static !important; transform: none !important; margin: 0 auto 48px; }
+}
+@media (max-width: 750px) {
+  .personal-home { padding: 0 24px !important; }
+  .personal-home .plugin-clock.bios-style { padding: 20px 0; }
+  .personal-home .clock-time { font-size: 2.8rem !important; }
+  .personal-home .clock-date { font-size: 1rem !important; }
+}

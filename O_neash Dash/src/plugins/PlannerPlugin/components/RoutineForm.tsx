@@ -3,6 +3,8 @@ import { Reload, Calendar, Contact, TeachSharp, Fire, PartyPopper } from 'pixela
 import { generateOccurrenceDates } from '../lib/recurrence';
 import { cancelException } from '../lib/routineDb';
 import { usePlannerStore } from '../store/usePlannerStore';
+import { usePersonalSettingsStore } from '../../../store/usePersonalSettingsStore';
+import { weekdayOrder } from '../lib/planningPreferences';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -138,8 +140,9 @@ function RoutineCalendar({ month, setMonth, fixed, manual, exceptions, onToggle 
   fixed: Set<string>; manual: Set<string>; exceptions: Set<string>;
   onToggle:(date:string,isFixed:boolean,isManual:boolean)=>void;
 }) {
+  const weekStartsOn = usePersonalSettingsStore(s => s.settings.weekStartsOn);
   const y = month.getFullYear(); const m = month.getMonth();
-  const firstDow = new Date(y,m,1).getDay();
+  const firstDow = (new Date(y,m,1).getDay() - weekStartsOn + 7) % 7;
   const dim = new Date(y,m+1,0).getDate();
   const today = toDS(new Date());
   return (
@@ -150,7 +153,7 @@ function RoutineCalendar({ month, setMonth, fixed, manual, exceptions, onToggle 
         <button onClick={()=>setMonth(addM(month,1))}  style={{ ...vm,background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.4)',fontSize:'1rem',padding:0 }}>▶</button>
       </div>
       <div style={{ display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:'1px' }}>
-        {DH.map(d=><div key={d} style={{ ...vm,textAlign:'center',fontSize:'0.72rem',color:'rgba(255,255,255,0.3)',paddingBottom:3 }}>{d}</div>)}
+        {weekdayOrder(weekStartsOn).map(i => DH[i]).map((d,i)=><div key={i} style={{ ...vm,textAlign:'center',fontSize:'0.72rem',color:'rgba(255,255,255,0.3)',paddingBottom:3 }}>{d}</div>)}
         {Array.from({length:firstDow},(_,i)=><div key={`e${i}`}/>)}
         {Array.from({length:dim},(_,i)=>{
           const day=i+1;

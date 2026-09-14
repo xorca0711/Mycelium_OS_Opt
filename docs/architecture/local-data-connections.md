@@ -6,6 +6,7 @@
 
 | Source | What becomes data | Write path / storage |
 |---|---|---|
+| Settings → Personal | Profile/avatar, weekly availability, focus/break preferences and feature choices | [personalSettingsDb](../../O_neash%20Dash/src/lib/personalSettingsDb.ts) → `personal_settings` and append-only `personal_settings_history`; weather location stays in `localStorage` |
 | Planner forms and completion actions | Arcs, projects, tasks, estimates, schedules, completion times | [plannerDb](../../O_neash%20Dash/src/plugins/PlannerPlugin/lib/plannerDb.ts) → `arcs`, `projects`, `nodes` |
 | Start/pause/finish session controls | Session timestamps, pauses and recorded task effort | [onTheClockDb](../../O_neash%20Dash/src/plugins/PlannerPlugin/lib/onTheClockDb.ts) → `work_sessions`, `session_nodes`, `session_pauses` |
 | Routine configuration | Templates/rules entered by you; generated task/event occurrences | [routineDb](../../O_neash%20Dash/src/plugins/PlannerPlugin/lib/routineDb.ts) → routine tables and planner records |

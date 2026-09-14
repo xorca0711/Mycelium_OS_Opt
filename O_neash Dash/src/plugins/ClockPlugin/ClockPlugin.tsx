@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import './ClockPlugin.css';
+import { usePersonalSettingsStore } from '../../store/usePersonalSettingsStore';
+import { formatHomeClock } from '../../lib/personalFeaturePolicy';
 
 /**
  * Clock Plugin Component
@@ -8,6 +10,9 @@ import './ClockPlugin.css';
 function ClockPlugin() {
   const [time, setTime] = useState<Date>(new Date());
   const biosStyle = true; // Toggle between original and BIOS style
+  const timeZone = usePersonalSettingsStore(s => s.settings.timeZone);
+  const locale = usePersonalSettingsStore(s => s.settings.locale);
+  const formatted = formatHomeClock(time, timeZone, locale);
 
   useEffect(() => {
     const timer: ReturnType<typeof setInterval> = setInterval(
@@ -19,13 +24,13 @@ function ClockPlugin() {
 
   return (
     <div className={`plugin-clock ${biosStyle ? 'bios-style' : ''}`}>
-      {biosStyle && <div className="clock-label">SYSTEM CLOCK</div>}
+      {biosStyle && <div className="clock-label">{formatted.zone}</div>}
       <div className="clock-indicator"></div>
       <div className="clock-time">
-        {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+        {formatted.time}
       </div>
       <div className="clock-date">
-        {time.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+        {formatted.date}
       </div>
     </div>
   );

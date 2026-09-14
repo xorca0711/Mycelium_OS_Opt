@@ -1,4 +1,6 @@
 import { Component, lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { usePersonalSettingsStore } from '../store/usePersonalSettingsStore';
+import { pluginEnabled } from '../lib/personalFeaturePolicy';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFloatingEditorStore } from '../store/useFloatingEditorStore';
@@ -104,6 +106,7 @@ function NotePill({ note, onRestore, onClose }: {
 // ── Main FloatingEditor ───────────────────────────────────────────────────────
 
 export function FloatingEditor() {
+  const visible = usePersonalSettingsStore(state => pluginEnabled('notes', state.settings.disabledPluginIds, state.loaded && !state.error));
   const { docs, poolVisible, minimizeDoc, restoreDoc, closeDoc, openDoc } = useFloatingEditorStore();
   const { documents, ensureDocument, updateDocument, flushDocument } = useNotesStore();
   const noteRows = Object.fromEntries(documents.map(note => [note.id, note]));
@@ -112,12 +115,13 @@ export function FloatingEditor() {
   const docIdsKey = docs.map(d => d.docId).join(',');
 
   useEffect(() => {
+    if (!visible) return;
     docs.forEach(({ docId }) => {
       void ensureDocument(docId).then(note => {
         if (!note) setError('This document no longer exists.');
       }).catch(error => setError(String(error)));
     });
-  }, [docIdsKey, ensureDocument]);
+  }, [docIdsKey, ensureDocument, visible]);
 
   const handleSave = useCallback(async (docId: string, title: string, json: string) => {
     await updateDocument(docId, title, json);
@@ -126,6 +130,16 @@ export function FloatingEditor() {
     setError(null);
     void flushDocument(docId).then(action).catch(error => setError(String(error)));
   }, [flushDocument]);
+
+  useEffect(() => {
+    if (visible) return;
+    // Drafts already live in the shared queue. Flush them without clearing the document pool.
+    void Promise.all(docs.map(doc => flushDocument(doc.docId))).catch(error => setError(String(error)));
+  }, [visible, docIdsKey, flushDocument]);
+
+  if (!visible) return error ? <div role="alert" style={{ position: 'fixed', top: 50, right: 24, zIndex: 5020, color: '#f87171' }}>
+    Notes save failed: {error} <button onClick={() => { void Promise.all(docs.map(doc => flushDocument(doc.docId))).then(() => setError(null)).catch(error => setError(String(error))); }}>Retry save</button>
+  </div> : null;
 
   const openEntry = docs.find(d => d.state === 'open');
   const minimizedDocs = docs.filter(d => d.state === 'minimized');

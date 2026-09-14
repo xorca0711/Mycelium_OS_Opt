@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import HomePage from "../home/HomePage";
 import usePluginStore from "../store/usePluginStore";
 import { Component, Suspense, type ReactNode, type ErrorInfo } from "react";
+import { usePersonalSettingsStore } from '../store/usePersonalSettingsStore';
+import { pluginEnabled } from '../lib/personalFeaturePolicy';
 
 class PluginErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -28,6 +30,9 @@ class PluginErrorBoundary extends Component<{ children: ReactNode }, { failed: b
 function PluginBox() {
   const plugins = usePluginStore((state) => state.plugins);
   const activePlugin = usePluginStore((state) => state.activePlugin);
+  const allowed = usePersonalSettingsStore(state => pluginEnabled(activePlugin, state.settings.disabledPluginIds, state.loaded && !state.error));
+  // A settings change must unmount the old app immediately, without an exit-animation grace period.
+  if (!allowed) return <HomePage />;
   const selectedPlugin = plugins.find((p) => p.id === activePlugin);
   const ComponentToRender = selectedPlugin?.component ?? HomePage;
 

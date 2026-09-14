@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { FeedGate, canFetchFeed } from '../../lib/personalFeatures';
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { getWeatherLocation, setWeatherLocation, type WeatherLocation } from "./weatherLocation";
+import { getWeatherLocation, setWeatherLocation, subscribeWeatherLocation, type WeatherLocation } from "./weatherLocation";
 import { geocodeCity, fetchCurrentWeather, describeWeatherCode, type CurrentWeather } from "./weatherApi";
 import { WeeklyTempChart, HIGH_COLOR, LOW_COLOR } from "./WeeklyTempChart";
 
@@ -11,13 +12,21 @@ function LocationSetup({ onSet, onCancel }: { onSet: (loc: WeatherLocation) => v
   const [query, setQuery]     = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
+  const requestVersion = useRef(0);
+
+  useEffect(() => {
+    const unsubscribe = subscribeWeatherLocation(() => { requestVersion.current++; setLoading(false); });
+    return () => { requestVersion.current++; unsubscribe(); };
+  }, []);
 
   async function handleSubmit() {
-    if (!query.trim()) return;
+    if (!query.trim() || loading) return;
+    const request = ++requestVersion.current;
     setLoading(true);
     setError(null);
     try {
       const results = await geocodeCity(query.trim());
+      if (request !== requestVersion.current || !canFetchFeed('weather')) return;
       if (results.length === 0) {
         setError("city not found");
         setLoading(false);
@@ -29,8 +38,7 @@ function LocationSetup({ onSet, onCancel }: { onSet: (loc: WeatherLocation) => v
       setWeatherLocation(loc);
       onSet(loc);
     } catch {
-      setError("lookup failed");
-      setLoading(false);
+      if (request === requestVersion.current) { setError("lookup failed"); setLoading(false); }
     }
   }
 
@@ -100,6 +108,10 @@ function LocationSetup({ onSet, onCancel }: { onSet: (loc: WeatherLocation) => v
 }
 
 export function WeatherPanel() {
+  return <FeedGate feature="weather"><WeatherPanelContent /></FeedGate>;
+}
+
+function WeatherPanelContent() {
   const [location, setLocationState] = useState<WeatherLocation | null>(null);
   const [weather, setWeather]         = useState<CurrentWeather | null>(null);
   const [loaded, setLoaded]           = useState(false);
@@ -107,15 +119,24 @@ export function WeatherPanel() {
 
   useEffect(() => {
     setLocationState(getWeatherLocation());
+    return subscribeWeatherLocation(nextLocation => {
+      setLocationState(nextLocation);
+      setWeather(null);
+      setLoaded(false);
+      setEditingLocation(false);
+    });
   }, []);
 
   useEffect(() => {
     if (!location) return;
+    let cancelled = false;
     setLoaded(false);
     fetchCurrentWeather(location.lat, location.lon).then((w) => {
+      if (cancelled) return;
       setWeather(w);
       setLoaded(true);
-    });
+    }).catch(() => { if (!cancelled) { setWeather(null); setLoaded(true); } });
+    return () => { cancelled = true; };
   }, [location]);
 
   if (!location || editingLocation) {

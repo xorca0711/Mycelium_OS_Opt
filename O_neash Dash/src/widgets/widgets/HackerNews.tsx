@@ -1,3 +1,4 @@
+import { FeedGate, canFetchFeed } from '../../lib/personalFeatures';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetch } from '@tauri-apps/plugin-http';
@@ -49,6 +50,7 @@ function formatDate(dateStr: string): string {
 }
 
 async function fetchHN(): Promise<FeedEntry[]> {
+  if (!canFetchFeed('news')) return [];
   try {
     const res = await fetch(`https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=${POOL_SIZE_PER_SOURCE}`);
     if (!res.ok) return [];
@@ -66,6 +68,7 @@ async function fetchHN(): Promise<FeedEntry[]> {
 }
 
 async function fetchRss(url: string, source: 'World' | 'Korea'): Promise<FeedEntry[]> {
+  if (!canFetchFeed('news')) return [];
   try {
     const res = await fetch(url);
     if (!res.ok) return [];
@@ -85,7 +88,11 @@ async function fetchRss(url: string, source: 'World' | 'Korea'): Promise<FeedEnt
   }
 }
 
-export function HackerNews({ instanceId }: WidgetProps) {
+export function HackerNews(props: WidgetProps) {
+  return <FeedGate feature="news"><HackerNewsContent {...props}/></FeedGate>;
+}
+
+function HackerNewsContent({ instanceId }: WidgetProps) {
   const [pool, setPool]         = useState<FeedEntry[]>(() => {
     const items = cachedPool();
     return pickDailySample(items, items.length, `news-${todaySeed()}`);

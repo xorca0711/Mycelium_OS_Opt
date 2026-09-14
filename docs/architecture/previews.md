@@ -75,3 +75,9 @@ Editable source: [mycelium-architecture.drawio](mycelium-architecture.drawio). S
 [Open SVG](12-analytics.svg)
 
 ![Personal analytics / logical joins](12-analytics.svg)
+
+## Personal profile / preference history
+
+[Open SVG](13-preferences.svg)
+
+![Personal profile / preference history](13-preferences.svg)

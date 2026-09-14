@@ -26,6 +26,8 @@ The checked-in pnpm build policy permits only esbuild's required install script.
 
 See the [verified project status](docs/project-status.md), [architecture diagram gallery](docs/architecture/previews.md), [editable draw.io file](docs/architecture/mycelium-architecture.drawio), [customization map](docs/architecture/customization-map.md), and [local database/data-source guide](docs/architecture/local-data-connections.md).
 
+**Stage 6:** Open **Settings → Personal** to edit your name/avatar, home clock timezone, supported regional formats, Planner week start, daily availability, focus/break preferences, modules, feeds and Analytics sources. Save applies preferences and preserves a SQLite revision history. The same screen exposes sleep targets, weather-location clearing, links to goal editors and the local storage path. Import/backup tools and an installer remain later steps.
+
 ## Upstream overview
 <div align="center">
 <img width="70%" alt="image" src="https://github.com/user-attachments/assets/629719a4-f7f5-432b-aeb6-db5b4c9140ec" />
@@ -171,7 +173,8 @@ O_neash Dash/
 │   ├── components/ui/         # Shared Radix-based primitives
 │   ├── home/                  # LaunchMenu, HomePage, category definitions
 │   ├── lib/
-│   │   └── db.ts              # SQLite singleton, full schema, migration logic
+│   │   ├── db.ts              # SQLite bridge and native transaction API
+│   │   └── personalSettingsDb.ts # Profile validation/persistence and revisions
 │   ├── plugins/
 │   │   ├── AcademicPlugin/
 │   │   ├── ClockPlugin/
@@ -191,14 +194,15 @@ O_neash Dash/
 ├── src-tauri/
 │   ├── src/
 │   │   ├── main.rs            # Tauri entry point
-│   │   └── lib.rs             # Plugin setup, DB directory creation
+│   │   ├── lib.rs             # Plugin setup and IPC registration
+│   │   └── database/          # Native initialization, v1–v5 migrations and schema
 │   ├── Cargo.toml             # Rust dependencies
 │   └── tauri.conf.json        # App config (window, permissions, SQL)
 ```
 
 ### Database
 
-The entire application state lives in one SQLite file. The schema is applied at startup via a `CREATE TABLE IF NOT EXISTS` migration block in `src/lib/db.ts` — no migration tooling required, columns are added with `ALTER TABLE` guards.
+Domain records and personal settings share one SQLite file per environment. The Rust database module runs versioned migrations before the frontend obtains the shared pool. The current fresh schema has 48 tables and 43 declared foreign keys; media files and WebView appearance/layout settings have separate storage. See the [schema inventory](docs/architecture/schema-inventory.md) for exact columns and constraints.
 
 Key tables:
 
@@ -220,6 +224,7 @@ Key tables:
 | `academic_canvas_edges` | Dependency arrows on canvas |
 | `work_sessions / productivity_logs` | On The Clock focus sessions |
 | `journal_entries` | Daily log records |
+| `personal_settings / personal_settings_history` | Current personal profile/preferences and atomic revision snapshots |
 
 ### State Management
 
@@ -232,6 +237,7 @@ Global stores:
 
 - `usePluginStore` — which plugin is currently active
 - `useWidgetStore` — home widget configuration
+- `usePersonalSettingsStore` — validated profile/preferences, readiness and serialized saves
 
 ### Frontend Stack
 
@@ -255,12 +261,13 @@ Global stores:
 
 The Rust layer is intentionally thin. It handles:
 
-- **Window management** — fullscreen, single-window
+- **Window management** — resizable single window with native title bar
 - **SQLite** — via `tauri-plugin-sql`, configured to load the database at a user-specific path
-- **File system** — creating the `~/Documents/O-neash-data/` directory on first launch
+- **File system** — separate native-selected development/release data directories
+- **Schema and transactions** — versioned migrations, shared SQLite pool and atomic write batches
 - **PDF export** — macOS-only: uses `objc2-app-kit` and `objc2-web-kit` to print a `WKWebView` to PDF
 
-The frontend does all business logic. The Rust layer has no awareness of schema or data shape.
+The frontend owns scheduling, editing and analytics logic. Rust owns storage initialization, schema upgrades and related-write transactions.
 
 ### Plugin Structure
 
@@ -296,7 +303,7 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
-The app runs fullscreen. The SQLite database is created automatically at first launch in `~/Documents/O-neash-data/oneash-DB.db`.
+The app opens in a resizable 1100 × 720 window (minimum 800 × 600). The database is created automatically: development uses `Documents/O-neash-data-dev/oneash-DB.db`; packaged release uses `Documents/O-neash-data/oneash-DB.db`. No SQLite server is needed.
 
 ---
 

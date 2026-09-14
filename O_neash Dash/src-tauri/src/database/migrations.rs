@@ -4,7 +4,7 @@ use sqlx::{Connection, Row, SqliteConnection};
 
 use super::wardrobe::upgrade_wardrobe;
 
-const CURRENT_VERSION: i64 = 4;
+const CURRENT_VERSION: i64 = 5;
 type ForeignKeyViolation = (String, Option<i64>, String, i64);
 
 async fn foreign_key_violations(
@@ -100,6 +100,11 @@ async fn apply_version(connection: &mut SqliteConnection, version: i64) -> Resul
             )
             .execute(connection)
             .await?;
+        }
+        5 => {
+            // Seed lazily in the application from the existing user's capacity.
+            sqlx::raw_sql(include_str!("schema/settings.sql"))
+                .execute(connection).await?;
         }
         _ => return Err(sqlx::Error::Protocol(format!("Unknown migration {version}"))),
     }

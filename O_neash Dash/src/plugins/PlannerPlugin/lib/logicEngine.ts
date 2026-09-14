@@ -111,7 +111,7 @@ export function computePressureScore(
   }));
   let todayPts = todayItems.reduce((s, i) => s + i.urgPts, 0);
   const todayMins = todayIncomplete.reduce((s, n) => s + (n.estimated_duration_minutes ?? 0), 0);
-  const ratio = capacityMins > 0 ? todayMins / capacityMins : 0;
+  const ratio = capacityMins > 0 ? todayMins / capacityMins : todayMins > 0 ? Infinity : 0;
   const effortBonus = Math.max(0, Math.min(20, (ratio - 0.8) * 40));
   todayPts += effortBonus;
   const todayScore = Math.min(45, todayPts);

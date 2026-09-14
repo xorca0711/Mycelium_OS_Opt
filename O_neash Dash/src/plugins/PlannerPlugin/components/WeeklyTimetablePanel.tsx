@@ -12,6 +12,8 @@ import type { WorkSession, SessionNodeWithNode } from "../lib/onTheClockDb";
 import { getEntriesForRange } from "../../SleepTrackerPlugin/lib/sleepDb";
 import type { SleepEntry } from "../../SleepTrackerPlugin/lib/sleepDb";
 import type { PlannerNode, Arc, Project } from "../types";
+import { usePersonalSettingsStore } from '../../../store/usePersonalSettingsStore';
+import { calendarWeekStart } from '../lib/planningPreferences';
 
 const CAL_MONTH_SHORT = [
   "Jan",
@@ -36,12 +38,6 @@ function calAddDays(d: Date, n: number): Date {
   const r = new Date(d);
   r.setDate(r.getDate() + n);
   return r;
-}
-function calGetWeekMon(offset: number): Date {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const dow = today.getDay();
-  return calAddDays(today, (dow === 0 ? -6 : 1 - dow) + offset * 7);
 }
 function calAddMins(time: string, mins: number): string {
   const [h, m] = time.split(":").map(Number);
@@ -70,6 +66,7 @@ function getArcColorCal(
 
 /** Persistent weekly timetable — rendered as a left panel across all Planner tabs. */
 export default function WeeklyTimetablePanel() {
+  const weekStartsOn = usePersonalSettingsStore(s => s.settings.weekStartsOn);
   const { nodes: storeNodes, arcs: allArcs, projects } = usePlannerStore();
   const highlightNodeId = useViewStore(s => s.hoveredNodeId);
   const hiddenArcIds = useArcVisibilityStore(s => s.hiddenArcIds);
@@ -104,7 +101,8 @@ export default function WeeklyTimetablePanel() {
     return () => clearInterval(id);
   }, []);
 
-  const mon = calGetWeekMon(weekOffset);
+  const mon = calendarWeekStart(nowCal, weekStartsOn, weekOffset);
+  const weekKey = calToDS(mon);
   const days = Array.from({ length: 7 }, (_, i) => calAddDays(mon, i));
   const today = calToDS(new Date());
 
@@ -123,7 +121,7 @@ export default function WeeklyTimetablePanel() {
       setWeekSessionNodes(nodeMap);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekOffset, storeNodes]);
+  }, [weekKey, storeNodes]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, PlannerNode[]>();
@@ -134,7 +132,7 @@ export default function WeeklyTimetablePanel() {
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventNodes, weekOffset]);
+  }, [eventNodes, weekKey]);
 
   const START_HOUR = 0; // always show the full 00–24 range
 

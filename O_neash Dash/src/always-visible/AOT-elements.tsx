@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import SingleBloomNav from "./SingleBloomNavigator/SingleBloomNav";
 import usePluginStore from "../store/usePluginStore";
 import { Home } from "pixelarticons/react";
+import { usePersonalSettingsStore } from '../store/usePersonalSettingsStore';
+import { pluginEnabled } from '../lib/personalFeaturePolicy';
 import { CATEGORIES } from "../home/LaunchMenu";
 import { SpeakYourMindInput } from "../widgets/widgets/SpeakYourMind";
 import { useFloatingEditorStore } from "../store/useFloatingEditorStore";
@@ -412,8 +414,10 @@ function AotMenu() {
   const menuRef  = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  const { settings, loaded, error } = usePersonalSettingsStore();
+  const allApps = ALL_APPS.filter(app => pluginEnabled(app.pluginId, settings.disabledPluginIds, loaded && !error));
   const recentApps = recent
-    .map((id) => ALL_APPS.find((a) => a.pluginId === id))
+    .map((id) => allApps.find((a) => a.pluginId === id))
     .filter(Boolean) as typeof ALL_APPS;
 
   // Track recently visited plugins
@@ -475,7 +479,7 @@ function AotMenu() {
         )}
 
         <div className="aot-menu-section-label">[all]</div>
-        {ALL_APPS.map((app) => (
+        {allApps.map((app) => (
           <button
             key={app.pluginId}
             className="aot-menu-item"
@@ -658,12 +662,20 @@ function AotOnTheClockPanel() {
 }
 
 function AlwaysOnTop() {
+  const { settings, loaded, error } = usePersonalSettingsStore();
+  const activeSession = useSessionStore(s => s.activeSession);
+  const ready = loaded && !error;
+  const notesVisible = pluginEnabled('notes', settings.disabledPluginIds, ready);
+  const plannerVisible = pluginEnabled('planner', settings.disabledPluginIds, ready);
+  const loadSessions = useSessionStore(s => s.load);
+  // Recover unfinished sessions after restart even if Planner is hidden.
+  useEffect(() => { if (ready) void loadSessions(); }, [ready, loadSessions]);
   return (
     <div className="always-on-top">
       <AotMenu />
       <div className="aot-right-group">
-        <AotRightPanel />
-        <AotOnTheClockPanel />
+        {notesVisible && <AotRightPanel />}
+        {(plannerVisible || (ready && activeSession !== null)) && <AotOnTheClockPanel />}
       </div>
       <SingleBloomNav />
     </div>

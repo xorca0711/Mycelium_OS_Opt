@@ -15,7 +15,7 @@ const url = p => remote + p.split('/').map(encodeURIComponent).join('/');
 const esc = x => String(x).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 const database = new DatabaseSync(':memory:');
 const sourceByTable = new Map();
-for (const file of ['planner', 'personal', 'collections']) {
+for (const file of ['planner', 'personal', 'collections', 'settings']) {
   const source = `src-tauri/src/database/schema/${file}.sql`;
   const sql = read(source);
   database.exec(sql);
@@ -43,6 +43,7 @@ const tables = database.prepare("SELECT name, sql FROM sqlite_master WHERE type=
 }));
 const byName = new Map(tables.map(t => [t.name, t]));
 const logical = [
+  ['personal_settings', 'revision', 'personal_settings_history', 'revision'],
   ['tendril_edges', 'project_id', 'projects', 'id'],
   ['session_nodes', 'node_id', 'nodes', 'id'],
   ['academic_subjects', 'project_id', 'projects', 'id'],
@@ -96,6 +97,7 @@ function tablePage(id, name, names, subtitle = '') {
 addPage('01-runtime', 'Runtime / script architecture', [
   ['main', 'React entry', ['src/main.tsx', 'StrictMode -> App'], 'src/main.tsx'],
   ['app', 'App / initialization gate', ['setupDb() single-flight', 'ready OR error dismisses splash'], 'src/App.tsx'],
+  ['prefs', 'Personal settings readiness', ['Load persisted profile after DB setup', 'Save current settings + revision atomically', 'Gate modules / feeds / analytics'], 'src/store/usePersonalSettingsStore.ts'],
   ['nav', 'PluginBox + lazy registry', ['20 plugin routes', 'Suspense / error boundary'], 'src/plugins/PluginBox.tsx'],
   ['shell', 'Persistent shell', ['AlwaysOnTop + FloatingEditor', 'Home: visible feeds and quick actions', 'Hidden WidgetPanel is unmounted'], 'src/always-visible/AOT-elements.tsx'],
   ['state', 'Zustand / UI state', ['Plugin, planner, session, notes views', 'Mutations then scoped refresh/events'], 'src/store/usePluginStore.ts'],
@@ -105,13 +107,13 @@ addPage('01-runtime', 'Runtime / script architecture', [
   ['sql', 'Tauri plugin-sql', ['Database.get(databaseUrl)', 'Reads + remaining single writes'], 'src/lib/db.ts', 'native'],
   ['db', 'Shared SQLite pool / file', ['oneash-DB.db', 'FK-enabled connections; 10s busy timeout', 'All domains join by IDs or timestamps'], 'src-tauri/src/database/mod.rs', 'storage'],
 ].map(([id, title, lines, file, kind]) => ({ id, title, lines, link: url(file), kind: kind ?? 'normal' })), [
-  ['main', 'app', 'mount'], ['app', 'init', 'initialize'], ['app', 'nav', 'when ready'], ['app', 'shell', 'when ready'],
+  ['main', 'app', 'mount'], ['app', 'init', 'initialize'], ['app', 'prefs', 'after DB ready'], ['prefs', 'nav', 'when loaded'], ['prefs', 'shell', 'when loaded'], ['prefs', 'helpers', 'load / save'],
   ['nav', 'state', 'view actions'], ['shell', 'state', 'quick actions'], ['state', 'helpers', 'load / mutate'],
   ['helpers', 'batch', 'executeBatch()'], ['helpers', 'sql', 'getDb()'], ['init', 'db', 'migrations + pool'], ['batch', 'db', 'atomic writes'], ['sql', 'db', 'SQL'],
 ].map(([from,to,label]) => ({from,to,label})), 'React + TypeScript / Tauri + Rust. Data flows back through promises, Zustand updates and note-change events.');
 
 addPage('02-storage', 'Storage boundaries / personal inputs', [
-  ['sqlfile', 'Primary SQLite data', ['Debug: Documents/O-neash-data-dev/', 'Release: Documents/O-neash-data/', 'Both: oneash-DB.db', 'No personal database read for this map'], 'src-tauri/src/database/mod.rs', 'storage'],
+  ['sqlfile', 'Primary SQLite data', ['Debug: Documents/O-neash-data-dev/', 'Release: Documents/O-neash-data/', 'Records + profile + preference history', 'Avatar raster data is stored in profile JSON'], 'src-tauri/src/database/mod.rs', 'storage'],
   ['media', 'Media files beside SQLite', ['notes-images/ and journal-images/', 'wardrobe-images/ and filmneg-images/', 'DB stores paths / JSON references'], 'src/lib/dataLocation.ts', 'storage'],
   ['local', 'WebView localStorage', ['Fonts; arc visibility; widget layout', 'Weather location; daily quote cache', 'Separate from SQLite backup'], 'src/lib/fontSettings.ts', 'storage'],
   ['mem', 'Session memory', ['Zustand state / note catalog', 'Feed cache: 15m TTL, deduped fetches', '60s retry cooldown; stale fallback'], 'src/widgets/lib/feedCache.ts', 'logical'],
@@ -141,6 +143,8 @@ addPage('12-analytics', 'Personal analytics / logical joins', [
 ].map(([id,title,lines,file,kind])=>({id,title,lines,link:url(file),kind})), [
   ['sleep','window','timestamps'], ['tasks','output','completion within interval'], ['effort','output','node_id match'], ['window','output','bounded interval'], ['output','views','derived results'],
 ].map(([from,to,label])=>({from,to,label,kind:'logical'})), 'Dashed arrows are computed joins, not FK constraints. Current days are provisional. IRF retains its estimated-duration formula. No causal claim is implied.');
+
+tablePage('13-preferences', 'Personal profile / preference history', ['personal_settings', 'personal_settings_history'], 'Typed JSON v1; migration v5. Current revision and immutable history are saved in one transaction.');
 
 // Ensure every current table appears as a primary entity, not merely a cross-domain stub.
 const covered = new Set(pages.flatMap(p => p.nodes.filter(n => n.primary).map(n => n.id)));
