@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { AnimatePresence, motion, type Transition } from 'framer-motion';
 import { useNotesStore } from '../store/useNotesStore';
 import type { NoteRow } from '../lib/notesDb';
-import { loadNotes } from '../lib/notesDb';
 import FileSystemView from '../components/FileSystemView';
 import TypewriterEditor from '../components/TypewriterEditor';
 
@@ -14,48 +13,55 @@ interface DocumentsViewProps {
 }
 
 export default function DocumentsView({ defaultOpenDoc, onDefaultDocOpened }: DocumentsViewProps) {
-  const { loadDocuments, createDocument, updateDocument, deleteNote } = useNotesStore();
-  const [openDoc, setOpenDoc] = useState<NoteRow | null>(null);
+  const { documents, loadDocuments, ensureDocument, flushDocument, createDocument, updateDocument, deleteNote } = useNotesStore();
+  const [openDocId, setOpenDocId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const openDoc = documents.find(doc => doc.id === openDocId) ?? null;
   const dirRef = useRef<1 | -1>(1);
 
-  useEffect(() => { loadDocuments(); }, []);
+  useEffect(() => { void loadDocuments().catch(error => setError(String(error))); }, [loadDocuments]);
 
   // Auto-open a doc passed in from the promote flow
   useEffect(() => {
     if (!defaultOpenDoc) return;
     dirRef.current = 1;
-    setOpenDoc(defaultOpenDoc);
+    setOpenDocId(defaultOpenDoc.id);
+    void ensureDocument(defaultOpenDoc.id).catch(error => setError(String(error)));
     onDefaultDocOpened?.();
   }, [defaultOpenDoc?.id]);
 
   const handleSave = useCallback(async (title: string, contentJson: string) => {
-    if (!openDoc) return;
-    await updateDocument(openDoc.id, title, contentJson);
-  }, [openDoc?.id, updateDocument]);
+    if (!openDocId) return;
+    await updateDocument(openDocId, title, contentJson);
+  }, [openDocId, updateDocument]);
 
-  const openEditor  = useCallback((doc: NoteRow) => { dirRef.current = 1;  setOpenDoc(doc); }, []);
-  const closeEditor = useCallback(()             => { dirRef.current = -1; setOpenDoc(null); loadDocuments(); }, [loadDocuments]);
+  const openEditor = useCallback((doc: NoteRow) => { dirRef.current = 1; setOpenDocId(doc.id); void ensureDocument(doc.id).catch(error => setError(String(error))); }, [ensureDocument]);
+  const closeEditor = useCallback(() => {
+    if (!openDocId) return;
+    void flushDocument(openDocId).then(() => { dirRef.current = -1; setOpenDocId(null); }).catch(error => setError(String(error)));
+  }, [openDocId, flushDocument]);
 
   const handleNavigate = useCallback(async (docId: string) => {
-    const docs = await loadNotes('document');
-    const target = docs.find(d => d.id === docId) ?? null;
+    if (openDocId) await flushDocument(openDocId);
+    const target = await ensureDocument(docId);
     if (target) openEditor(target);
-  }, [openEditor]);
+  }, [openEditor, openDocId, flushDocument, ensureDocument]);
 
   const handleDeleteDoc = useCallback(async (id: string) => {
     await deleteNote(id);
     // If the deleted doc is currently open, go back to the file system
-    if (openDoc?.id === id) closeEditor();
-  }, [deleteNote, openDoc?.id, closeEditor]);
+    if (openDocId === id) { dirRef.current = -1; setOpenDocId(null); }
+  }, [deleteNote, openDocId]);
 
   const handleCreateDoc = async (arcId: string | null, projectId: string | null) => {
     const id  = await createDocument('New Document', arcId, projectId);
-    const doc = (await loadNotes('document')).find(d => d.id === id) ?? null;
+    const doc = await ensureDocument(id);
     if (doc) openEditor(doc);
   };
 
   return (
     <div style={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+      {error && <div role="alert" style={{ position: 'absolute', top: 0, right: 0, zIndex: 20, color: '#f87171' }}>{error}</div>}
       <AnimatePresence mode="popLayout" custom={dirRef.current}>
         {openDoc ? (
           <motion.div
@@ -70,8 +76,8 @@ export default function DocumentsView({ defaultOpenDoc, onDefaultDocOpened }: Do
               doc={openDoc}
               onSave={handleSave}
               onBack={closeEditor}
-              onDelete={() => handleDeleteDoc(openDoc.id)}
-              onNavigate={handleNavigate}
+              onDelete={() => { void handleDeleteDoc(openDoc.id).catch(error => setError(String(error))); }}
+              onNavigate={id => { void handleNavigate(id).catch(error => setError(String(error))); }}
             />
           </motion.div>
         ) : (

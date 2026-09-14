@@ -13,9 +13,14 @@
     "windows": [
       {
         "title": "Mycelium",
-        "width": 800,
-        "height": 600,
-        "fullscreen": true
+        "width": 1100,
+        "height": 720,
+        "minWidth": 800,
+        "minHeight": 600,
+        "center": true,
+        "resizable": true,
+        "decorations": true,
+        "fullscreen": false
       }
     ],
     "security": {
@@ -37,6 +42,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "windows": {
+      "nsis": { "installMode": "currentUser" },
+      "webviewInstallMode": { "type": "downloadBootstrapper" }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

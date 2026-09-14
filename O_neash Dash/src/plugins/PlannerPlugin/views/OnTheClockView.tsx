@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import '../PlannerPlugin.css';
 import { useSessionStore } from '../store/useSessionStore';
+import { usePersonalSettingsStore } from '../../../store/usePersonalSettingsStore';
+import { weekdayOrder } from '../lib/planningPreferences';
 import { Feather } from 'pixelarticons/react/Feather';
 import { Computer } from 'pixelarticons/react/Computer';
 import { BracesContent } from 'pixelarticons/react/BracesContent';
@@ -563,7 +565,7 @@ function SessionDurationHistogram({ sessions, activeSession }: { sessions: WorkS
 
 // ── Work heatmap (day × hour, all-time) ─────────────────────────────────────────
 
-const DOW_LABELS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+const DOW_LABELS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const HEATMAP_HOUR_MARKS = new Set([0, 6, 12, 18]);
 const HEATMAP_GAP = 2;
 
@@ -601,13 +603,14 @@ function hourLabel(hour: number): string {
 }
 
 function WorkHeatmap({ sessions, activeSession }: { sessions: WorkSession[]; activeSession: WorkSession | null }) {
+  const weekStartsOn = usePersonalSettingsStore(s => s.settings.weekStartsOn);
   const [now, setNow] = useState(() => new Date());
   const [hovered, setHovered] = useState<{ dow: number; hour: number } | null>(null);
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(id);
   }, []);
-  const nowDow = (now.getDay() + 6) % 7;
+  const nowDow = (now.getDay() - weekStartsOn + 7) % 7;
   const nowHour = now.getHours();
 
   const grid = useMemo(() => {
@@ -623,7 +626,7 @@ function WorkHeatmap({ sessions, activeSession }: { sessions: WorkSession[]; act
       let cursor = start;
       while (cursor < end) {
         const d = new Date(cursor);
-        const dow = (d.getDay() + 6) % 7; // 0=Mon .. 6=Sun
+        const dow = (d.getDay() - weekStartsOn + 7) % 7;
         const hour = d.getHours();
         const hourEnd = new Date(d);
         hourEnd.setMinutes(0, 0, 0);
@@ -634,7 +637,7 @@ function WorkHeatmap({ sessions, activeSession }: { sessions: WorkSession[]; act
       }
     }
     return cells;
-  }, [sessions, activeSession?.id]);
+  }, [sessions, activeSession?.id, weekStartsOn, now]);
 
   const maxMs = Math.max(1, ...grid.flatMap(row => row));
   const hasData = grid.some(row => row.some(ms => ms > 0));
@@ -646,7 +649,7 @@ function WorkHeatmap({ sessions, activeSession }: { sessions: WorkSession[]; act
         by day / hour
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: HEATMAP_GAP }}>
-        {DOW_LABELS.map((label, dow) => (
+        {weekdayOrder(weekStartsOn).map(day => DOW_LABELS[day]).map((label, dow) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ width: '3ch', flexShrink: 0, fontFamily: VT, fontSize: '0.75rem', letterSpacing: 1, color: 'rgba(255,255,255,0.6)' }}>
               {label}

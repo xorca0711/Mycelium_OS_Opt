@@ -1,4 +1,6 @@
-import { getDb } from '@/lib/db';
+import { getDb, executeBatch, type SqlStatement } from '@/lib/db';
+import { netSessionMinutes } from './sessionTiming';
+import { serializeSessionOperation } from './sessionOperations';
 
 export interface WorkLocation {
   id: string;
@@ -156,69 +158,55 @@ export async function createSession(locationId: string, plannedDate: string): Pr
   return id;
 }
 
-export async function startSession(sessionId: string): Promise<void> {
-  const db = getDb();
+async function startSessionInternal(sessionId: string): Promise<void> {
   const now = new Date().toISOString();
-  await db.execute(
-    `UPDATE work_sessions SET status = 'active', actual_start = ? WHERE id = ?`,
-    [now, sessionId],
-  );
-  // Remove nodes already completed in planner
-  await db.execute(
-    `DELETE FROM session_nodes WHERE session_id = ?
-     AND node_id IN (SELECT id FROM nodes WHERE is_completed = 1)`,
-    [sessionId],
-  );
+  await executeBatch([
+    { sql: `UPDATE work_sessions SET status = 'active', actual_start = COALESCE(actual_start, ?) WHERE id = ?`, values: [now, sessionId] },
+    { sql: `DELETE FROM session_nodes WHERE session_id = ? AND status = 'queued' AND COALESCE(total_minutes, 0) = 0
+      AND node_id IN (SELECT id FROM nodes WHERE is_completed = 1)`, values: [sessionId] },
+  ]);
 }
 
-export async function pauseSession(sessionId: string): Promise<string> {
+async function pauseSessionInternal(sessionId: string): Promise<string> {
   const now = new Date().toISOString();
-  await getDb().execute(`UPDATE work_sessions SET status = 'paused' WHERE id = ?`, [sessionId]);
   const pauseId = crypto.randomUUID();
-  await getDb().execute(
-    'INSERT INTO session_pauses (id, session_id, paused_at, pause_type) VALUES (?, ?, ?, ?)',
-    [pauseId, sessionId, now, 'manual'],
-  );
-  return pauseId;
+  await executeBatch([
+    { sql: `UPDATE work_sessions SET status = 'paused' WHERE id = ?`, values: [sessionId] },
+    { sql: `INSERT INTO session_pauses (id, session_id, paused_at, pause_type)
+      SELECT ?, ?, ?, 'manual' WHERE NOT EXISTS (SELECT 1 FROM session_pauses WHERE session_id = ? AND resumed_at IS NULL)`, values: [pauseId, sessionId, now, sessionId] },
+  ]);
+  const active = await getDb().select<{id:string}[]>(`SELECT id FROM session_pauses WHERE session_id = ? AND resumed_at IS NULL ORDER BY paused_at LIMIT 1`, [sessionId]);
+  return active[0]?.id ?? pauseId;
 }
 
-export async function resumeSession(sessionId: string, pauseId: string): Promise<void> {
+async function resumeSessionInternal(sessionId: string, pauseId: string): Promise<void> {
   const now = new Date().toISOString();
-  await getDb().execute(`UPDATE work_sessions SET status = 'active' WHERE id = ?`, [sessionId]);
-  await getDb().execute(
-    `UPDATE session_pauses SET resumed_at = ? WHERE id = ?`,
-    [now, pauseId],
-  );
+  await executeBatch([
+    { sql: `UPDATE work_sessions SET status = 'active' WHERE id = ?`, values: [sessionId] },
+    { sql: `UPDATE session_pauses SET resumed_at = ? WHERE session_id = ? AND resumed_at IS NULL`, values: [now, sessionId] },
+  ]);
 }
 
-export async function endSession(sessionId: string, status: 'completed' | 'interrupted'): Promise<void> {
-  return endSessionAt(sessionId, status, new Date().toISOString());
+async function endSessionInternal(sessionId: string, status: 'completed' | 'interrupted'): Promise<void> {
+  return endSessionAtInternal(sessionId, status, new Date().toISOString());
 }
 
-export async function updateSessionEndTime(sessionId: string, endTime: string): Promise<void> {
+async function updateSessionEndTimeInternal(sessionId: string, endTime: string): Promise<void> {
   await getDb().execute(
     `UPDATE work_sessions SET actual_end = ? WHERE id = ?`,
     [endTime, sessionId],
   );
 }
 
-export async function endSessionAt(sessionId: string, status: 'completed' | 'interrupted', endTime: string): Promise<void> {
-  const db = getDb();
-  await db.execute(
-    `UPDATE session_pauses SET resumed_at = ? WHERE session_id = ? AND resumed_at IS NULL`,
-    [endTime, sessionId],
-  );
-  await db.execute(
-    `UPDATE work_sessions SET status = ?, actual_end = ? WHERE id = ?`,
-    [status, endTime, sessionId],
-  );
+async function endSessionAtInternal(sessionId: string, status: 'completed' | 'interrupted', endTime: string): Promise<void> {
+  if (!Number.isFinite(Date.parse(endTime))) throw new Error('Invalid session end time');
+  const rows = await getDb().select<{node_id:string}[]>(`SELECT node_id FROM session_nodes WHERE session_id = ? AND status = 'in_progress'`, [sessionId]);
+  const statements = await Promise.all(rows.map(row => settleStatement(sessionId, row.node_id, 'incomplete', endTime)));
+  await executeBatch([...statements, ...endStatements(sessionId, status, endTime)]);
 }
 
-export async function deleteSession(sessionId: string): Promise<void> {
-  const db = getDb();
-  await db.execute('DELETE FROM session_pauses WHERE session_id = ?', [sessionId]);
-  await db.execute('DELETE FROM session_nodes WHERE session_id = ?', [sessionId]);
-  await db.execute('DELETE FROM work_sessions WHERE id = ?', [sessionId]);
+async function deleteSessionInternal(sessionId: string): Promise<void> {
+  await getDb().execute('DELETE FROM work_sessions WHERE id = ?', [sessionId]);
 }
 
 export async function loadSessionPauses(sessionId: string): Promise<SessionPause[]> {
@@ -235,11 +223,11 @@ export interface SessionNodeMinutes {
   total_minutes: number;
 }
 
-/** All done session-node rows that have a recorded actual duration. */
-export async function loadAllDoneSessionNodeMinutes(): Promise<SessionNodeMinutes[]> {
+/** Total recorded effort per task, including work carried over from incomplete sessions. */
+export async function loadTaskSessionMinutes(): Promise<SessionNodeMinutes[]> {
   return getDb().select<SessionNodeMinutes[]>(
-    `SELECT node_id, total_minutes FROM session_nodes
-     WHERE status = 'done' AND total_minutes IS NOT NULL AND total_minutes > 0`,
+    `SELECT node_id, SUM(total_minutes) AS total_minutes FROM session_nodes
+     WHERE total_minutes > 0 GROUP BY node_id`,
   );
 }
 
@@ -260,85 +248,70 @@ export async function loadSessionNodes(sessionId: string): Promise<SessionNodeWi
   );
 }
 
-export async function addNodesToSession(sessionId: string, nodeIds: string[]): Promise<void> {
+async function addNodesToSessionInternal(sessionId: string, nodeIds: string[]): Promise<void> {
   if (!nodeIds.length) return;
-  const db = getDb();
-  const maxRow = await db.select<{ m: number }[]>(
-    'SELECT COALESCE(MAX(sort_order), -1) as m FROM session_nodes WHERE session_id = ?',
-    [sessionId],
-  );
-  let next = (maxRow[0]?.m ?? -1) + 1;
-  for (const nodeId of nodeIds) {
-    await db.execute(
-      'INSERT OR IGNORE INTO session_nodes (session_id, node_id, sort_order) VALUES (?, ?, ?)',
-      [sessionId, nodeId, next++],
-    );
-  }
+  await executeBatch(nodeIds.map(nodeId => ({ sql: `INSERT OR IGNORE INTO session_nodes (session_id, node_id, sort_order)
+    SELECT ?, ?, COALESCE(MAX(sort_order), -1) + 1 FROM session_nodes WHERE session_id = ?`, values: [sessionId, nodeId, sessionId] })));
 }
 
 async function computeNetMinutes(sessionId: string, timeStarted: string, timeFinished: string): Promise<number> {
-  const pauses = await getDb().select<{ paused_at: string; resumed_at: string }[]>(
+  const pauses = await getDb().select<{ paused_at: string; resumed_at: string | null }[]>(
     `SELECT paused_at, resumed_at FROM session_pauses
-     WHERE session_id = ? AND paused_at >= ? AND paused_at <= ? AND resumed_at IS NOT NULL`,
-    [sessionId, timeStarted, timeFinished],
+     WHERE session_id = ?`,
+    [sessionId],
   );
-  const startMs = new Date(timeStarted).getTime();
-  const endMs = new Date(timeFinished).getTime();
-  const pauseMs = pauses.reduce((sum, p) => {
-    const s = Math.max(new Date(p.paused_at).getTime(), startMs);
-    const e = Math.min(new Date(p.resumed_at).getTime(), endMs);
-    return sum + Math.max(0, e - s);
-  }, 0);
-  return Math.max(0, (endMs - startMs - pauseMs) / 60000);
+  return netSessionMinutes(timeStarted, timeFinished, pauses);
 }
 
-export async function startNode(sessionId: string, nodeId: string): Promise<void> {
+async function settleStatement(sessionId: string, nodeId: string, status: SessionNode['status'], now: string): Promise<SqlStatement> {
+  const rows = await getDb().select<SessionNode[]>('SELECT * FROM session_nodes WHERE session_id = ? AND node_id = ?', [sessionId, nodeId]);
+  const row = rows[0];
+  if (!row) throw new Error('Task is not part of this session');
+  const started = row?.status === 'in_progress' ? row.time_started : null;
+  const net = started ? await computeNetMinutes(sessionId, started, now) : 0;
+  return { sql: `UPDATE session_nodes SET
+    total_minutes = COALESCE(total_minutes, 0) + CASE WHEN status = 'in_progress' AND time_started = ? THEN ? ELSE 0 END,
+    time_finished = CASE WHEN status = 'in_progress' OR time_finished IS NULL THEN ? ELSE time_finished END,
+    time_started = CASE WHEN ? = 'queued' THEN NULL ELSE time_started END,
+    status = ? WHERE session_id = ? AND node_id = ?`, values: [started, net, now, status, status, sessionId, nodeId] };
+}
+
+function completionStatements(nodeId: string, now: string): SqlStatement[] {
+  return [
+    { sql: `INSERT INTO productivity_logs (id, node_id, completed_at) SELECT ?, id, ? FROM nodes WHERE id = ? AND is_completed = 0`, values: [crypto.randomUUID(), now, nodeId] },
+    { sql: `UPDATE nodes SET is_completed = 1, actual_completed_at = COALESCE(actual_completed_at, ?)
+      WHERE id = ?`, values: [now, nodeId] },
+  ];
+}
+
+function endStatements(sessionId: string, status: string, now: string): SqlStatement[] {
+  return [
+    { sql: `UPDATE session_pauses SET resumed_at = ? WHERE session_id = ? AND resumed_at IS NULL`, values: [now, sessionId] },
+    { sql: `UPDATE work_sessions SET status = ?, actual_end = ? WHERE id = ?`, values: [status, now, sessionId] },
+  ];
+}
+
+async function startNodeInternal(sessionId: string, nodeId: string): Promise<void> {
   await getDb().execute(
-    `UPDATE session_nodes SET status = 'in_progress', time_started = ? WHERE session_id = ? AND node_id = ?`,
+    `UPDATE session_nodes SET status = 'in_progress', time_started = ?, time_finished = NULL WHERE session_id = ? AND node_id = ? AND status IN ('queued', 'incomplete')`,
     [new Date().toISOString(), sessionId, nodeId],
   );
 }
 
-export async function finishNode(sessionId: string, nodeId: string): Promise<void> {
-  const db = getDb();
+async function finishNodeInternal(sessionId: string, nodeId: string): Promise<void> {
   const now = new Date().toISOString();
-  const rows = await db.select<{ time_started: string | null }[]>(
-    'SELECT time_started FROM session_nodes WHERE session_id = ? AND node_id = ?',
-    [sessionId, nodeId],
-  );
-  const net = rows[0]?.time_started ? await computeNetMinutes(sessionId, rows[0].time_started, now) : 0;
-  await db.execute(
-    `UPDATE session_nodes SET status = 'done', time_finished = ?, total_minutes = ? WHERE session_id = ? AND node_id = ?`,
-    [now, net, sessionId, nodeId],
-  );
-  await db.execute(
-    `UPDATE nodes SET is_completed = 1, actual_completed_at = ? WHERE id = ?`,
-    [now, nodeId],
-  );
+  await executeBatch([await settleStatement(sessionId, nodeId, 'done', now), ...completionStatements(nodeId, now)]);
 }
 
-export async function markNodeIncomplete(sessionId: string, nodeId: string): Promise<void> {
-  const db = getDb();
-  const now = new Date().toISOString();
-  const rows = await db.select<{ time_started: string | null }[]>(
-    'SELECT time_started FROM session_nodes WHERE session_id = ? AND node_id = ?',
-    [sessionId, nodeId],
-  );
-  const net = rows[0]?.time_started ? await computeNetMinutes(sessionId, rows[0].time_started, now) : 0;
-  await db.execute(
-    `UPDATE session_nodes SET status = 'incomplete', time_finished = ?, total_minutes = ? WHERE session_id = ? AND node_id = ?`,
-    [now, net, sessionId, nodeId],
-  );
+async function markNodeIncompleteInternal(sessionId: string, nodeId: string): Promise<void> {
+  await executeBatch([await settleStatement(sessionId, nodeId, 'incomplete', new Date().toISOString())]);
 }
 
-export async function returnNodeToQueue(sessionId: string, nodeId: string): Promise<void> {
-  await getDb().execute(
-    `UPDATE session_nodes SET status = 'queued', time_started = NULL WHERE session_id = ? AND node_id = ?`,
-    [sessionId, nodeId],
-  );
+async function returnNodeToQueueInternal(sessionId: string, nodeId: string): Promise<void> {
+  await executeBatch([await settleStatement(sessionId, nodeId, 'queued', new Date().toISOString())]);
 }
 
-export async function removeNodeFromSession(sessionId: string, nodeId: string): Promise<void> {
+async function removeNodeFromSessionInternal(sessionId: string, nodeId: string): Promise<void> {
   await getDb().execute(
     'DELETE FROM session_nodes WHERE session_id = ? AND node_id = ?',
     [sessionId, nodeId],
@@ -347,24 +320,12 @@ export async function removeNodeFromSession(sessionId: string, nodeId: string): 
 
 // ── Force-stop helpers ────────────────────────────────────────────────────────
 
-export async function carryOverUnfinished(sessionId: string): Promise<void> {
-  const db = getDb();
-  const now = new Date().toISOString();
-  const inProg = await db.select<{ node_id: string; time_started: string | null }[]>(
-    `SELECT node_id, time_started FROM session_nodes WHERE session_id = ? AND status = 'in_progress'`,
-    [sessionId],
-  );
-  for (const sn of inProg) {
-    const net = sn.time_started ? await computeNetMinutes(sessionId, sn.time_started, now) : 0;
-    await db.execute(
-      `UPDATE session_nodes SET status='incomplete', time_finished=?, total_minutes=? WHERE session_id=? AND node_id=?`,
-      [now, net, sessionId, sn.node_id],
-    );
-  }
-  await db.execute(`DELETE FROM session_nodes WHERE session_id = ? AND status = 'queued'`, [sessionId]);
+async function carryOverUnfinishedInternal(sessionId: string): Promise<void> {
+  await moveUnfinishedToSessionInternal(sessionId, null);
 }
 
-export async function moveUnfinishedToSession(fromId: string, toId: string | null): Promise<void> {
+async function moveUnfinishedToSessionInternal(fromId: string, toId: string | null): Promise<void> {
+  if (fromId === toId) throw new Error('Choose a different target session');
   const db = getDb();
   const now = new Date().toISOString();
   const unfinished = await db.select<{ node_id: string; status: string; time_started: string | null }[]>(
@@ -372,47 +333,53 @@ export async function moveUnfinishedToSession(fromId: string, toId: string | nul
      WHERE session_id = ? AND status IN ('queued','in_progress')`,
     [fromId],
   );
-  for (const sn of unfinished.filter(n => n.status === 'in_progress')) {
-    const net = sn.time_started ? await computeNetMinutes(fromId, sn.time_started, now) : 0;
-    await db.execute(
-      `UPDATE session_nodes SET status='incomplete', time_finished=?, total_minutes=? WHERE session_id=? AND node_id=?`,
-      [now, net, fromId, sn.node_id],
-    );
-  }
+  const statements = await Promise.all(unfinished.filter(n => n.status === 'in_progress')
+    .map(sn => settleStatement(fromId, sn.node_id, 'incomplete', now)));
   if (toId && unfinished.length) {
-    const maxRow = await db.select<{ m: number }[]>(
-      'SELECT COALESCE(MAX(sort_order),-1) as m FROM session_nodes WHERE session_id = ?', [toId],
-    );
-    let next = (maxRow[0]?.m ?? -1) + 1;
     for (const sn of unfinished) {
-      await db.execute(
-        'INSERT OR IGNORE INTO session_nodes (session_id, node_id, sort_order, status) VALUES (?,?,?,?)',
-        [toId, sn.node_id, next++, 'queued'],
-      );
+      statements.push({ sql: `INSERT OR IGNORE INTO session_nodes (session_id, node_id, sort_order, status)
+        SELECT ?, ?, COALESCE(MAX(sort_order), -1) + 1, 'queued' FROM session_nodes WHERE session_id = ?`, values: [toId, sn.node_id, toId] });
     }
   }
-  await db.execute(`DELETE FROM session_nodes WHERE session_id = ? AND status = 'queued'`, [fromId]);
+  statements.push(
+    { sql: `UPDATE session_nodes SET status = 'incomplete' WHERE session_id = ? AND status = 'queued' AND total_minutes > 0`, values: [fromId] },
+    { sql: `DELETE FROM session_nodes WHERE session_id = ? AND status = 'queued' AND COALESCE(total_minutes, 0) = 0`, values: [fromId] },
+    ...endStatements(fromId, 'interrupted', now),
+  );
+  await executeBatch(statements);
 }
 
-export async function markAllNodesDone(sessionId: string): Promise<void> {
+async function markAllNodesDoneInternal(sessionId: string): Promise<void> {
   const db = getDb();
   const now = new Date().toISOString();
   const rows = await db.select<{ node_id: string; time_started: string | null }[]>(
     `SELECT node_id, time_started FROM session_nodes WHERE session_id = ? AND status IN ('in_progress','queued')`,
     [sessionId],
   );
-  for (const sn of rows) {
-    const net = sn.time_started ? await computeNetMinutes(sessionId, sn.time_started, now) : 0;
-    await db.execute(
-      `UPDATE session_nodes SET status='done', time_finished=?, total_minutes=? WHERE session_id=? AND node_id=?`,
-      [now, net, sessionId, sn.node_id],
-    );
-    await db.execute(
-      `UPDATE nodes SET is_completed=1, actual_completed_at=? WHERE id=?`,
-      [now, sn.node_id],
-    );
-  }
+  const statements: SqlStatement[] = [];
+  for (const sn of rows) statements.push(await settleStatement(sessionId, sn.node_id, 'done', now), ...completionStatements(sn.node_id, now));
+  await executeBatch([...statements, ...endStatements(sessionId, 'completed', now)]);
 }
+
+// These queues cover the reads used to calculate time as well as the atomic write.
+export const startSession = serializeSessionOperation(startSessionInternal);
+export const pauseSession = serializeSessionOperation(pauseSessionInternal);
+export const resumeSession = serializeSessionOperation(resumeSessionInternal);
+export const endSession = serializeSessionOperation(endSessionInternal);
+export const updateSessionEndTime = serializeSessionOperation(updateSessionEndTimeInternal);
+export const endSessionAt = serializeSessionOperation(endSessionAtInternal);
+export const deleteSession = serializeSessionOperation(deleteSessionInternal);
+export const addNodesToSession = serializeSessionOperation(addNodesToSessionInternal);
+export const startNode = serializeSessionOperation(startNodeInternal);
+export const finishNode = serializeSessionOperation(finishNodeInternal);
+export const markNodeIncomplete = serializeSessionOperation(markNodeIncompleteInternal);
+export const returnNodeToQueue = serializeSessionOperation(returnNodeToQueueInternal);
+export const removeNodeFromSession = serializeSessionOperation(removeNodeFromSessionInternal);
+export const carryOverUnfinished = serializeSessionOperation(carryOverUnfinishedInternal);
+export const moveUnfinishedToSession = serializeSessionOperation(
+  moveUnfinishedToSessionInternal, (fromId, toId) => toId ? [fromId, toId] : [fromId],
+);
+export const markAllNodesDone = serializeSessionOperation(markAllNodesDoneInternal);
 
 // ── Arc time breakdown ────────────────────────────────────────────────────────
 

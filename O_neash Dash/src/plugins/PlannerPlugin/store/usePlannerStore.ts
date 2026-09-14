@@ -14,6 +14,7 @@ interface PlannerStore {
   subTasksByNode: Record<string, SubTask[]>;
 
   loadAll: () => Promise<void>;
+  refreshNode: (id: string) => Promise<void>;
   createNode: (data: CreateNodeData) => Promise<string>;
   updateNode: (id: string, patch: Record<string, unknown>) => Promise<void>;
   deleteNode: (id: string) => Promise<void>;
@@ -71,44 +72,42 @@ export const usePlannerStore = create<PlannerStore>((set, get) => ({
     set({ nodes, groups, arcs, projects, capacity });
   },
 
+  refreshNode: async (id) => {
+    const node = await db.loadNodeById(id);
+    set(s => ({ nodes: !node || node.is_completed ? s.nodes.filter(n => n.id !== id)
+      : s.nodes.some(n => n.id === id) ? s.nodes.map(n => n.id === id ? node : n)
+      : [node, ...s.nodes] }));
+    window.dispatchEvent(new CustomEvent('planner:node-changed', { detail: { nodeId: id } }));
+  },
+
   createNode: async (data) => {
     const id = await db.createNode(data);
-    const nodes = await db.loadNodes();
-    set({ nodes });
+    await get().refreshNode(id);
     toast.success(`${data.node_type === 'event' ? 'event' : 'task'} created`);
     return id;
   },
 
   updateNode: async (id, patch) => {
     await db.updateNode(id, patch);
-    const nodes = await db.loadNodes();
-    set({ nodes });
-    window.dispatchEvent(new CustomEvent('planner:node-changed'));
+    await get().refreshNode(id);
     toast.success('task updated');
   },
 
   deleteNode: async (id) => {
-    try {
-      await db.deleteNode(id);
-    } catch (e) {
-      console.error('deleteNode sync error (node was deleted):', e);
-    }
-    const nodes = await db.loadNodes();
-    set({ nodes });
+    await db.deleteNode(id);
+    await get().refreshNode(id);
     toast('task deleted', { style: { borderColor: 'rgba(255,59,59,0.5)', color: '#ff3b3b' } });
   },
 
   rescheduleNode: async (id, date) => {
     await db.rescheduleNode(id, date);
-    const nodes = await db.loadNodes();
-    set({ nodes });
+    await get().refreshNode(id);
     toast.success('rescheduled');
   },
 
   completeNode: async (id) => {
     await db.completeNode(id);
-    const nodes = await db.loadNodes();
-    set({ nodes });
+    await get().refreshNode(id);
     toast('task done', {
       icon: createElement(CheckboxOn, { width: 16, height: 16, style: { color: '#4ade80', flexShrink: 0, marginRight: 8 } }),
       style: { borderColor: 'rgba(74,222,128,0.45)', color: '#4ade80' },
@@ -117,15 +116,13 @@ export const usePlannerStore = create<PlannerStore>((set, get) => ({
 
   uncompleteNode: async (id) => {
     await db.uncompleteNode(id);
-    const nodes = await db.loadNodes();
-    set({ nodes });
+    await get().refreshNode(id);
     toast('task unfinished', { style: { borderColor: 'rgba(251,146,60,0.5)', color: '#fb923c' } });
   },
 
   replaceNodeGroups: async (nodeId, groupIds) => {
     await db.replaceNodeGroups(nodeId, groupIds);
-    const nodes = await db.loadNodes();
-    set({ nodes });
+    await get().refreshNode(nodeId);
   },
 
   createGroup: async (data) => {
@@ -139,7 +136,8 @@ export const usePlannerStore = create<PlannerStore>((set, get) => ({
   updateGroup: async (id, patch) => {
     await db.updateGroup(id, patch);
     const groups = await db.loadGroups();
-    set({ groups });
+    const group = groups.find(g => g.id === id);
+    set(s => ({ groups, nodes: s.nodes.map(n => ({ ...n, groups: (n.groups ?? []).map(g => g.id === id && group ? group : g) })) }));
     toast.success('group updated');
   },
 
@@ -162,7 +160,8 @@ export const usePlannerStore = create<PlannerStore>((set, get) => ({
   updateArc: async (id, patch) => {
     await db.updateArc(id, patch);
     const arcs = await db.loadArcs();
-    set({ arcs });
+    const arc = arcs.find(a => a.id === id);
+    set(s => ({ arcs, nodes: s.nodes.map(n => n.arc_id === id && arc ? { ...n, arc_color: arc.color_hex } : n) }));
     toast.success('arc updated');
   },
 

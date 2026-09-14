@@ -12,6 +12,7 @@ export interface WikiSuggestion {
 export interface WikiLinkOptions {
   onSuggestion: (suggestion: WikiSuggestion | null) => void;
   onKeyDown: (args: { event: KeyboardEvent }) => boolean;
+  resolveTarget: (title: string) => string | null;
 }
 
 export const WikiLink = Node.create<WikiLinkOptions>({
@@ -25,6 +26,7 @@ export const WikiLink = Node.create<WikiLinkOptions>({
     return {
       onSuggestion: (_: WikiSuggestion | null) => {},
       onKeyDown: (_: { event: KeyboardEvent }) => false as boolean,
+      resolveTarget: (_: string) => null,
     };
   },
 
@@ -32,6 +34,7 @@ export const WikiLink = Node.create<WikiLinkOptions>({
     return {
       title: { default: null },
       alias: { default: null },
+      targetId: { default: null, parseHTML: element => element.getAttribute('data-wiki-id'), renderHTML: () => ({}) },
     };
   },
 
@@ -45,6 +48,7 @@ export const WikiLink = Node.create<WikiLinkOptions>({
       'span',
       mergeAttributes(HTMLAttributes, {
         'data-wiki-title': node.attrs.title,
+        'data-wiki-id': node.attrs.targetId,
         class: 'wiki-link',
       }),
       display,
@@ -59,6 +63,7 @@ export const WikiLink = Node.create<WikiLinkOptions>({
         getAttributes: match => ({
           title: match[1] ?? null,
           alias: match[2] ?? null,
+          targetId: this.options.resolveTarget(match[1] ?? ''),
         }),
       }),
     ];

@@ -1,4 +1,5 @@
-import { getDb } from "@/lib/db";
+import { getDb, executeBatch, type SqlStatement } from "@/lib/db";
+import { localDateRange, recentCalendarRange } from './dateRanges';
 import { computeUrgencyLevel, toDateString } from "./logicEngine";
 import type {
   PlannerNode,
@@ -21,13 +22,27 @@ const NODE_SELECT = `
 
 async function hydrateRows(rows: PlannerNode[]): Promise<PlannerNode[]> {
   const db = getDb();
+  const groupsByNode = new Map<string, PlannerGroup[]>();
+  for (let offset = 0; offset < rows.length; offset += 500) {
+    const ids = rows.slice(offset, offset + 500).map(row => row.id);
+    const groups = await db.select<(PlannerGroup & { node_id: string })[]>(
+      `SELECT pg.*, ng.node_id FROM planner_groups pg JOIN node_groups ng ON ng.group_id = pg.id
+       WHERE ng.node_id IN (${ids.map(() => '?').join(',')}) ORDER BY pg.sort_order ASC`, ids,
+    );
+    for (const { node_id, ...group } of groups) {
+      const list = groupsByNode.get(node_id) ?? [];
+      list.push({ ...group, is_ungrouped: Boolean(group.is_ungrouped) });
+      groupsByNode.set(node_id, list);
+    }
+  }
+  const advances: SqlStatement[] = [];
   const now = new Date();
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const todayStr = toDateString(today);
 
   for (const row of rows) {
-    row.groups = await getNodeGroups(row.id);
+    row.groups = groupsByNode.get(row.id) ?? [];
     row.is_completed = Boolean(row.is_completed);
     row.is_locked = Boolean(row.is_locked);
     row.is_pinned = Boolean(row.is_pinned);
@@ -73,10 +88,7 @@ async function hydrateRows(rows: PlannerNode[]): Promise<PlannerNode[]> {
             ? row.planned_start_at.slice(10)
             : "";
         const newPlannedAt = todayStr + timeSuffix;
-        await db.execute(`UPDATE nodes SET planned_start_at = ? WHERE id = ?`, [
-          newPlannedAt,
-          row.id,
-        ]);
+        advances.push({ sql: `UPDATE nodes SET planned_start_at = ? WHERE id = ?`, values: [newPlannedAt, row.id] });
         row.planned_start_at = newPlannedAt;
       }
     }
@@ -104,6 +116,7 @@ async function hydrateRows(rows: PlannerNode[]): Promise<PlannerNode[]> {
       row.node_type === "event",
     );
   }
+  if (advances.length) await executeBatch(advances);
   return rows;
 }
 
@@ -220,11 +233,11 @@ async function insertSingleNode(
   const dueDate = dateOverride != null ? dateOverride : (data.due_at ?? null);
   const isImportant = (data.importance_level ?? 0) === 1;
   const urgency = computeUrgencyLevel(isImportant, dueDate, new Date());
-  await db.execute(
+  const statements: SqlStatement[] = [{ sql:
     `INSERT INTO nodes (id, title, node_type, planned_start_at, due_at,
        estimated_duration_minutes, importance_level, computed_urgency_level, project_id, arc_id)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
+    values: [
       id,
       data.title,
       data.node_type ?? "task",
@@ -236,15 +249,13 @@ async function insertSingleNode(
       data.project_id ?? null,
       data.arc_id ?? null,
     ],
-  );
+  }];
   if (data.group_ids && data.group_ids.length > 0) {
     for (const gid of data.group_ids) {
-      await db.execute(
-        `INSERT OR IGNORE INTO node_groups(node_id, group_id) VALUES (?, ?)`,
-        [id, gid],
-      );
+      statements.push({ sql: `INSERT OR IGNORE INTO node_groups(node_id, group_id) VALUES (?, ?)`, values: [id, gid] });
     }
   }
+  await executeBatch(statements);
   return id;
 }
 
@@ -270,27 +281,7 @@ export async function updateNode(
 }
 
 export async function deleteNode(id: string): Promise<void> {
-  const db = getDb();
-  const nodeRows = await db.select<
-    { arc_id: string | null; project_id: string | null }[]
-  >(`SELECT arc_id, project_id FROM nodes WHERE id = ?`, [id]);
-  const n = nodeRows[0];
-  // The readd_ungrouped_if_empty trigger re-inserts a row into node_groups whenever
-  // one is deleted — which prevents CASCADE from ever fully removing child rows,
-  // causing a FK violation and rolling back the entire DELETE. Drop it first.
-  await db.execute(`DROP TRIGGER IF EXISTS readd_ungrouped_if_empty`);
-  await db.execute(`DELETE FROM nodes WHERE id = ?`, [id]);
-  await db.execute(`
-    CREATE TRIGGER IF NOT EXISTS readd_ungrouped_if_empty AFTER DELETE ON node_groups
-    BEGIN
-      INSERT OR IGNORE INTO node_groups(node_id, group_id)
-      SELECT OLD.node_id, id FROM planner_groups
-      WHERE is_ungrouped = 1
-        AND NOT EXISTS (
-          SELECT 1 FROM node_groups WHERE node_id = OLD.node_id
-        );
-    END
-  `);
+  await getDb().execute(`DELETE FROM nodes WHERE id = ?`, [id]);
 }
 
 export async function rescheduleNode(
@@ -305,17 +296,12 @@ export async function rescheduleNode(
 }
 
 export async function completeNode(id: string): Promise<void> {
-  const db = getDb();
   const now = new Date().toISOString();
-  await db.execute(
-    `UPDATE nodes SET is_completed = 1, actual_completed_at = ? WHERE id = ?`,
-    [now, id],
-  );
-  const logId = crypto.randomUUID();
-  await db.execute(
-    `INSERT INTO productivity_logs(id, node_id, completed_at) VALUES (?, ?, ?)`,
-    [logId, id, now],
-  );
+  await executeBatch([
+    { sql: `INSERT INTO productivity_logs(id, node_id, completed_at)
+      SELECT ?, id, ? FROM nodes WHERE id = ? AND is_completed = 0`, values: [crypto.randomUUID(), now, id] },
+    { sql: `UPDATE nodes SET is_completed = 1, actual_completed_at = COALESCE(actual_completed_at, ?) WHERE id = ?`, values: [now, id] },
+  ]);
 }
 
 export async function setNodeOverdue(
@@ -404,18 +390,10 @@ export async function replaceNodeGroups(
   nodeId: string,
   groupIds: string[],
 ): Promise<void> {
-  const db = getDb();
-  // Remove all real-group associations (keep nothing — triggers re-add ungrouped if empty)
-  await db.execute(
-    `DELETE FROM node_groups WHERE node_id = ? AND group_id != (SELECT id FROM planner_groups WHERE is_ungrouped = 1 LIMIT 1)`,
-    [nodeId],
-  );
-  for (const gid of groupIds) {
-    await db.execute(
-      `INSERT OR IGNORE INTO node_groups(node_id, group_id) VALUES (?, ?)`,
-      [nodeId, gid],
-    );
-  }
+  await executeBatch([
+    { sql: `DELETE FROM node_groups WHERE node_id = ? AND group_id != (SELECT id FROM planner_groups WHERE is_ungrouped = 1 LIMIT 1)`, values: [nodeId] },
+    ...groupIds.map(gid => ({ sql: `INSERT OR IGNORE INTO node_groups(node_id, group_id) VALUES (?, ?)`, values: [nodeId, gid] })),
+  ]);
 }
 
 // ─── Arc mutations ────────────────────────────────────────────────────────────
@@ -456,11 +434,7 @@ export async function archiveArc(_id: string): Promise<void> {
 }
 
 export async function deleteArc(id: string): Promise<void> {
-  const db = getDb();
-  // Orphan child nodes and projects
-  await db.execute(`UPDATE nodes SET arc_id = NULL WHERE arc_id = ?`, [id]);
-  await db.execute(`UPDATE projects SET arc_id = NULL WHERE arc_id = ?`, [id]);
-  await db.execute(`DELETE FROM arcs WHERE id = ?`, [id]);
+  await getDb().execute(`DELETE FROM arcs WHERE id = ?`, [id]);
 }
 
 // ─── Project mutations ────────────────────────────────────────────────────────
@@ -497,11 +471,7 @@ export async function updateProject(
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  const db = getDb();
-  await db.execute(`UPDATE nodes SET project_id = NULL WHERE project_id = ?`, [
-    id,
-  ]);
-  await db.execute(`DELETE FROM projects WHERE id = ?`, [id]);
+  await getDb().execute(`DELETE FROM projects WHERE id = ?`, [id]);
 }
 
 // ─── Dev utility: seed dummy data ────────────────────────────────────────────
@@ -937,34 +907,14 @@ export async function seedDummyData(): Promise<void> {
 // ─── Test utility: wipe all planner data ─────────────────────────────────────
 
 export async function wipePlannerData(): Promise<void> {
-  const db = getDb();
-  // Drop the readd_ungrouped_if_empty trigger before wiping.
-  // Without this, every DELETE on node_groups causes the trigger to re-insert
-  // a row, making it impossible to empty the table and causing FK violations
-  // when nodes are cascade-deleted.
-  await db.execute(`DROP TRIGGER IF EXISTS readd_ungrouped_if_empty`);
-  await db.execute(`DELETE FROM productivity_logs`);
-  await db.execute(`DELETE FROM sub_tasks`);
-  await db.execute(`DELETE FROM node_groups`);
-  await db.execute(`DELETE FROM nodes`);
-  await db.execute(`DELETE FROM projects`);
-  await db.execute(`DELETE FROM arcs`);
-  await db.execute(`DELETE FROM planner_groups WHERE id != 'g-ungrouped'`);
-  await db.execute(
+  await executeBatch([
+    `DELETE FROM productivity_logs`,
+    `DELETE FROM nodes`,
+    `DELETE FROM projects`,
+    `DELETE FROM arcs`,
+    `DELETE FROM planner_groups WHERE id != 'g-ungrouped'`,
     `UPDATE user_capacity SET daily_minutes=480, peak_start='09:00', peak_end='12:00' WHERE id='default'`,
-  );
-  // Recreate the trigger for normal operation
-  await db.execute(`
-    CREATE TRIGGER IF NOT EXISTS readd_ungrouped_if_empty AFTER DELETE ON node_groups
-    BEGIN
-      INSERT OR IGNORE INTO node_groups(node_id, group_id)
-      SELECT OLD.node_id, id FROM planner_groups
-      WHERE is_ungrouped = 1
-        AND NOT EXISTS (
-          SELECT 1 FROM node_groups WHERE node_id = OLD.node_id
-        );
-    END
-  `);
+  ].map(sql => ({ sql })));
 }
 
 // ─── Analytics queries ────────────────────────────────────────────────────────
@@ -976,16 +926,15 @@ export interface TodayDoneSummary {
 
 export async function loadTodayDoneSummary(): Promise<TodayDoneSummary> {
   const db = getDb();
-  // Fetch all completed tasks in the last 36 hours to cover any timezone edge cases
-  const since = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
+  const [since, until] = recentCalendarRange(1);
   const rows = await db.select<
     {
       estimated_duration_minutes: number;
       actual_completed_at: string;
     }[]
   >(
-    `SELECT estimated_duration_minutes, actual_completed_at FROM nodes WHERE is_completed = 1 AND actual_completed_at >= ?`,
-    [since],
+    `SELECT estimated_duration_minutes, actual_completed_at FROM nodes WHERE is_completed = 1 AND julianday(actual_completed_at) >= julianday(?) AND julianday(actual_completed_at) < julianday(?)`,
+    [since, until],
   );
   const todayStr = toDateString(new Date());
   let count = 0;
@@ -1008,15 +957,14 @@ export interface DayCompletion {
 
 export async function loadSevenDayCompletions(): Promise<DayCompletion[]> {
   const db = getDb();
-  // Fetch all completed tasks in the last 7 days (plus 1 for timezone safety)
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const [since, until] = recentCalendarRange(7);
   const rows = await db.select<
     {
       actual_completed_at: string;
     }[]
   >(
-    `SELECT actual_completed_at FROM nodes WHERE is_completed = 1 AND actual_completed_at >= ?`,
-    [since],
+    `SELECT actual_completed_at FROM nodes WHERE is_completed = 1 AND julianday(actual_completed_at) >= julianday(?) AND julianday(actual_completed_at) < julianday(?)`,
+    [since, until],
   );
   // Group by local date
   const counts: Record<string, number> = {};
@@ -1046,11 +994,10 @@ export interface ArcNodeCount {
 
 export async function loadTodayCompletedNodes(): Promise<PlannerNode[]> {
   const db = getDb();
-  // Fetch all completed tasks in the last 36 hours to cover any timezone edge cases
-  const since = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString();
+  const [since, until] = recentCalendarRange(1);
   const rows = await db.select<PlannerNode[]>(
-    `${NODE_SELECT} WHERE n.is_completed = 1 AND n.actual_completed_at >= ? ORDER BY n.actual_completed_at DESC`,
-    [since],
+    `${NODE_SELECT} WHERE n.is_completed = 1 AND julianday(n.actual_completed_at) >= julianday(?) AND julianday(n.actual_completed_at) < julianday(?) ORDER BY n.actual_completed_at DESC`,
+    [since, until],
   );
   // Filter in JS by local date
   const todayStr = toDateString(new Date());
@@ -1063,12 +1010,10 @@ export async function loadTodayCompletedNodes(): Promise<PlannerNode[]> {
 }
 
 export async function uncompleteNode(id: string): Promise<void> {
-  const db = getDb();
-  await db.execute(
-    `UPDATE nodes SET is_completed = 0, actual_completed_at = NULL WHERE id = ?`,
-    [id],
-  );
-  await db.execute(`DELETE FROM productivity_logs WHERE node_id = ?`, [id]);
+  await executeBatch([
+    { sql: `UPDATE nodes SET is_completed = 0, actual_completed_at = NULL WHERE id = ?`, values: [id] },
+    { sql: `DELETE FROM productivity_logs WHERE node_id = ?`, values: [id] },
+  ]);
 }
 
 export async function loadArcNodeCounts(): Promise<ArcNodeCount[]> {
@@ -1316,13 +1261,9 @@ export async function reorderSubTasks(
   nodeId: string,
   orderedIds: string[],
 ): Promise<void> {
-  const db = getDb();
-  for (let i = 0; i < orderedIds.length; i++) {
-    await db.execute(
-      `UPDATE sub_tasks SET sort_order = ? WHERE id = ? AND node_id = ?`,
-      [i, orderedIds[i], nodeId],
-    );
-  }
+  await executeBatch(orderedIds.map((id, i) => ({
+    sql: `UPDATE sub_tasks SET sort_order = ? WHERE id = ? AND node_id = ?`, values: [i, id, nodeId],
+  })));
 }
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
@@ -1344,9 +1285,9 @@ export interface DailyBehaviorRecord {
   sub_done: number;
 }
 
-export async function loadDailyBehaviorRecords(days = 90): Promise<DailyBehaviorRecord[]> {
+export async function loadDailyBehaviorRecords(days = 90, now = new Date()): Promise<DailyBehaviorRecord[]> {
   const db = getDb();
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const [since] = recentCalendarRange(days, now);
   return db.select<DailyBehaviorRecord[]>(
     `SELECT n.actual_completed_at, n.planned_start_at, n.created_at, n.arc_id, n.is_routine,
        (SELECT COUNT(*) FROM sub_tasks s WHERE s.node_id = n.id) AS sub_total,
@@ -1355,9 +1296,9 @@ export async function loadDailyBehaviorRecords(days = 90): Promise<DailyBehavior
      WHERE n.is_completed = 1
        AND n.actual_completed_at IS NOT NULL
        AND (n.node_type IS NULL OR n.node_type != 'event')
-       AND n.actual_completed_at >= ?
+       AND julianday(n.actual_completed_at) >= julianday(?) AND julianday(n.actual_completed_at) <= julianday(?)
      ORDER BY n.actual_completed_at ASC`,
-    [since],
+    [since, now.toISOString()],
   );
 }
 
@@ -1372,9 +1313,9 @@ export interface ArcCompletionRecord {
   node_type: string | null;
 }
 
-export async function loadArcCompletions(days = 90): Promise<ArcCompletionRecord[]> {
+export async function loadArcCompletions(days = 90, now = new Date()): Promise<ArcCompletionRecord[]> {
   const db = getDb();
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const [since] = recentCalendarRange(days, now);
   return db.select<ArcCompletionRecord[]>(
     `SELECT n.arc_id, a.name AS arc_name, a.color_hex AS arc_color,
             n.actual_completed_at, n.estimated_duration_minutes, n.node_type
@@ -1382,9 +1323,9 @@ export async function loadArcCompletions(days = 90): Promise<ArcCompletionRecord
      LEFT JOIN arcs a ON a.id = n.arc_id
      WHERE n.is_completed = 1
        AND n.actual_completed_at IS NOT NULL
-       AND n.actual_completed_at >= ?
+       AND julianday(n.actual_completed_at) >= julianday(?) AND julianday(n.actual_completed_at) <= julianday(?)
      ORDER BY n.actual_completed_at ASC`,
-    [since],
+    [since, now.toISOString()],
   );
 }
 
@@ -1394,18 +1335,18 @@ export interface IrfTaskRecord {
   estimated_duration_minutes: number | null;
 }
 
-export async function loadIrfTaskData(days = 90): Promise<IrfTaskRecord[]> {
+export async function loadIrfTaskData(days = 90, now = new Date()): Promise<IrfTaskRecord[]> {
   const db = getDb();
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const [since] = recentCalendarRange(days, now);
   return db.select<IrfTaskRecord[]>(
     `SELECT id, actual_completed_at, estimated_duration_minutes
      FROM nodes
      WHERE is_completed = 1
        AND actual_completed_at IS NOT NULL
        AND (node_type IS NULL OR node_type != 'event')
-       AND actual_completed_at >= ?
+       AND julianday(actual_completed_at) >= julianday(?) AND julianday(actual_completed_at) <= julianday(?)
      ORDER BY actual_completed_at ASC`,
-    [since],
+    [since, now.toISOString()],
   );
 }
 
@@ -1416,18 +1357,18 @@ export interface IrfTaskWithArcRecord {
   arc_id: string | null;
 }
 
-export async function loadIrfTaskDataWithArc(days = 180): Promise<IrfTaskWithArcRecord[]> {
+export async function loadIrfTaskDataWithArc(days = 180, now = new Date()): Promise<IrfTaskWithArcRecord[]> {
   const db = getDb();
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const [since] = recentCalendarRange(days, now);
   return db.select<IrfTaskWithArcRecord[]>(
     `SELECT id, actual_completed_at, estimated_duration_minutes, arc_id
      FROM nodes
      WHERE is_completed = 1
        AND actual_completed_at IS NOT NULL
        AND (node_type IS NULL OR node_type != 'event')
-       AND actual_completed_at >= ?
+       AND julianday(actual_completed_at) >= julianday(?) AND julianday(actual_completed_at) <= julianday(?)
      ORDER BY actual_completed_at ASC`,
-    [since],
+    [since, now.toISOString()],
   );
 }
 
@@ -1436,15 +1377,16 @@ export async function loadCompletionsForRange(
   to: string,
 ): Promise<CompletionRecord[]> {
   const db = getDb();
+  const bounds = localDateRange(from, to);
   return db.select<CompletionRecord[]>(
     `SELECT actual_completed_at, arc_id
      FROM nodes
      WHERE is_completed = 1
        AND actual_completed_at IS NOT NULL
        AND (node_type IS NULL OR node_type != 'event')
-       AND substr(actual_completed_at, 1, 10) >= ?
-       AND substr(actual_completed_at, 1, 10) <= ?
+       AND julianday(actual_completed_at) >= julianday(?)
+       AND julianday(actual_completed_at) < julianday(?)
      ORDER BY actual_completed_at ASC`,
-    [from, to],
+    bounds,
   );
 }

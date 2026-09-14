@@ -12,8 +12,10 @@ import {
 import { loadTodayDoneSummary, type TodayDoneSummary } from "../lib/plannerDb";
 import QuickAddInput from "./QuickAddInput";
 import type { PlannerNode } from "../types";
+import { usePersonalSettingsStore } from '../../../store/usePersonalSettingsStore';
 
 export default function PlannerHeader() {
+  const locale = usePersonalSettingsStore(s => s.settings.locale);
   const { nodes, rescheduleNode, createNode } = usePlannerStore();
   const { openTaskForm, suggestionsOn, setSuggestionsOn } = useViewStore();
 
@@ -52,11 +54,8 @@ export default function PlannerHeader() {
   }, [nodes]);
 
   const today = toDateString(now);
-  const weekday = now.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
-  const month = now.toLocaleDateString("en-US", { month: "long" }).toUpperCase();
-  const day = now.getDate();
   const sysDateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  const targetDateStr = `${weekday}, ${month} ${day}`;
+  const targetDateStr = now.toLocaleDateString(locale === 'system' ? undefined : locale, { weekday: 'long', month: 'long', day: 'numeric' });
 
   const todayNodes = useMemo(() => getTodayNodes(nodes, now), [nodes, now]);
   const overdue = useMemo(() => getOverdueNodes(nodes), [nodes]);

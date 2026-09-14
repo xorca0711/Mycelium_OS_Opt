@@ -1,12 +1,21 @@
-import { useState, useEffect, useCallback } from 'react';
+import { Component, lazy, Suspense, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { usePersonalSettingsStore } from '../store/usePersonalSettingsStore';
+import { pluginEnabled } from '../lib/personalFeaturePolicy';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFloatingEditorStore } from '../store/useFloatingEditorStore';
-import TypewriterEditor from '../plugins/NotesPlugin/components/TypewriterEditor';
-import { getNoteById, updateNote } from '../plugins/NotesPlugin/lib/notesDb';
+import { useNotesStore } from '../plugins/NotesPlugin/store/useNotesStore';
 import type { NoteRow } from '../plugins/NotesPlugin/lib/notesDb';
 
 const VT = "var(--font-main), var(--font-kr), monospace";
+const TypewriterEditor = lazy(() => import('../plugins/NotesPlugin/components/TypewriterEditor'));
+class EditorErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    return this.state.failed ? <div role="alert">The editor could not load. Close and reopen this document.</div> : this.props.children;
+  }
+}
 
 // ── Note Pill (terminal line style) ──────────────────────────────────────────
 
@@ -97,32 +106,48 @@ function NotePill({ note, onRestore, onClose }: {
 // ── Main FloatingEditor ───────────────────────────────────────────────────────
 
 export function FloatingEditor() {
-  const { docs, poolVisible, minimizeDoc, restoreDoc, closeDoc } = useFloatingEditorStore();
-  const [noteRows, setNoteRows] = useState<Record<string, NoteRow>>({});
+  const visible = usePersonalSettingsStore(state => pluginEnabled('notes', state.settings.disabledPluginIds, state.loaded && !state.error));
+  const { docs, poolVisible, minimizeDoc, restoreDoc, closeDoc, openDoc } = useFloatingEditorStore();
+  const { documents, ensureDocument, updateDocument, flushDocument } = useNotesStore();
+  const noteRows = Object.fromEntries(documents.map(note => [note.id, note]));
+  const [error, setError] = useState<string | null>(null);
 
   const docIdsKey = docs.map(d => d.docId).join(',');
 
   useEffect(() => {
+    if (!visible) return;
     docs.forEach(({ docId }) => {
-      if (noteRows[docId]) return;
-      getNoteById(docId).then(note => {
-        if (note) setNoteRows(prev => ({ ...prev, [docId]: note }));
-      });
+      void ensureDocument(docId).then(note => {
+        if (!note) setError('This document no longer exists.');
+      }).catch(error => setError(String(error)));
     });
-  }, [docIdsKey]);
+  }, [docIdsKey, ensureDocument, visible]);
 
   const handleSave = useCallback(async (docId: string, title: string, json: string) => {
-    await updateNote(docId, { title, content_json: json });
-    setNoteRows(prev =>
-      prev[docId] ? { ...prev, [docId]: { ...prev[docId], title, content_json: json } } : prev,
-    );
-  }, []);
+    await updateDocument(docId, title, json);
+  }, [updateDocument]);
+  const afterSave = useCallback((docId: string, action: () => void) => {
+    setError(null);
+    void flushDocument(docId).then(action).catch(error => setError(String(error)));
+  }, [flushDocument]);
+
+  useEffect(() => {
+    if (visible) return;
+    // Drafts already live in the shared queue. Flush them without clearing the document pool.
+    void Promise.all(docs.map(doc => flushDocument(doc.docId))).catch(error => setError(String(error)));
+  }, [visible, docIdsKey, flushDocument]);
+
+  if (!visible) return error ? <div role="alert" style={{ position: 'fixed', top: 50, right: 24, zIndex: 5020, color: '#f87171' }}>
+    Notes save failed: {error} <button onClick={() => { void Promise.all(docs.map(doc => flushDocument(doc.docId))).then(() => setError(null)).catch(error => setError(String(error))); }}>Retry save</button>
+  </div> : null;
 
   const openEntry = docs.find(d => d.state === 'open');
   const minimizedDocs = docs.filter(d => d.state === 'minimized');
 
   return createPortal(
     <>
+      {error && <div role="alert" style={{ position: 'fixed', top: 50, right: 24, zIndex: 5020, color: '#f87171' }}>{error}</div>}
+      {openEntry && !noteRows[openEntry.docId] && <div role="status" style={{ position: 'fixed', top: 70, right: 24, zIndex: 5010 }}>Loading document… <button onClick={() => closeDoc(openEntry.docId)}>Close</button></div>}
       {/* ── Full overlay ── */}
       <AnimatePresence>
         {openEntry && noteRows[openEntry.docId] && (
@@ -140,7 +165,7 @@ export function FloatingEditor() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, transition: { duration: 0.32, ease: 'easeIn' } }}
               transition={{ duration: 0.45, ease: 'easeOut' }}
-              onClick={() => minimizeDoc(openEntry.docId)}
+              onClick={() => afterSave(openEntry.docId, () => minimizeDoc(openEntry.docId))}
               style={{
                 position: 'absolute', inset: 0,
                 background: 'rgba(0,0,0,0.55)',
@@ -150,7 +175,7 @@ export function FloatingEditor() {
 
             {/* Close button */}
             <button
-              onClick={() => closeDoc(openEntry.docId)}
+              onClick={() => afterSave(openEntry.docId, () => closeDoc(openEntry.docId))}
               style={{
                 position: 'fixed', top: 18, right: 18, zIndex: 5010,
                 fontFamily: VT, fontSize: '0.9rem', letterSpacing: 1.5,
@@ -193,14 +218,19 @@ export function FloatingEditor() {
                 width: '85vw', height: '100vh',
                 maxWidth: 1100,
               }}>
+              <EditorErrorBoundary key={openEntry.docId}>
+              <Suspense fallback={<div role="status">Loading editor…</div>}>
               <TypewriterEditor
                 doc={noteRows[openEntry.docId]}
                 onSave={(title, json) => handleSave(openEntry.docId, title, json)}
-                onBack={() => minimizeDoc(openEntry.docId)}
+                onBack={() => afterSave(openEntry.docId, () => minimizeDoc(openEntry.docId))}
+                onNavigate={id => afterSave(openEntry.docId, () => openDoc(id))}
                 hideOutline
                 hideCommentPanel
                 transparentBg
               />
+              </Suspense>
+              </EditorErrorBoundary>
             </motion.div>
           </motion.div>
         )}
@@ -229,7 +259,7 @@ export function FloatingEditor() {
                 key={docId}
                 note={noteRows[docId]}
                 onRestore={() => restoreDoc(docId)}
-                onClose={() => closeDoc(docId)}
+                onClose={() => afterSave(docId, () => closeDoc(docId))}
               />
             ))}
           </motion.div>

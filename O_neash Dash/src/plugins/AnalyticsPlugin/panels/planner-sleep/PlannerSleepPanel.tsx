@@ -4,6 +4,7 @@ import ClusterPanel from "./ClusterPanel";
 import RecurrencePlot from "./RecurrencePlot";
 import { computeClusters, CLUSTER_COLORS } from "./clusterMath";
 import type { ClusterResult } from "./clusterMath";
+import { WINDOW_ASSUMPTION } from './sleepWindows';
 
 const VT = "var(--font-main), var(--font-kr), monospace";
 
@@ -173,7 +174,7 @@ export default function PlannerSleepPanel() {
         textAlign: "center", fontFamily: VT, fontSize: "1.05rem", letterSpacing: "2px",
         color: "rgba(255,255,255,0.2)", textTransform: "uppercase", flexShrink: 0,
       }}>
-        sleep × planner · v1
+        {WINDOW_ASSUMPTION}
       </div>
     </>
   );

@@ -2,13 +2,20 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="/icons/character/cyphel_teal_noeyes.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri + React</title>
+    <title>Mycelium</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=VT323&family=SUSE:wght@400;700&family=Gowun+Dodum&family=Odibee+Sans&family=PT+Sans:ital,wght@0,400;0,700;1,400&family=Inconsolata:wght@400;700&family=IBM+Plex+Mono+KR:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=SUSE:wght@400;700&family=Gowun+Dodum&family=PT+Sans:ital,wght@0,400;0,700;1,400&family=Inconsolata:wght@400;700&family=IBM+Plex+Mono+KR:wght@400;700&display=swap" rel="stylesheet" />
       <style>
+        @font-face {
+          font-family: 'Odibee Sans';
+          src: url('/fonts/OdibeeSans-Regular.ttf') format('truetype');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
         @font-face {
           font-family: 'KOTRAGothic';
           src: url('/fonts/KOTRA_GOTHIC.otf') format('opentype');
@@ -16,18 +23,13 @@
           font-style: normal;
         }
 
-        #root {
-          opacity: 0;
-          transform: scale(0.97) translateY(10px);
-          filter: blur(5px);
-        }
-        .app-enter {
-          animation: app-reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
+        #root { visibility: hidden; }
+        #root.app-enter { visibility: visible; animation: app-reveal .6s cubic-bezier(.22,1,.36,1) backwards; }
         @keyframes app-reveal {
-          0%   { opacity: 0; transform: scale(0.97) translateY(10px); filter: blur(5px); }
-          100% { opacity: 1; transform: scale(1) translateY(0);       filter: blur(0);   }
+          from { opacity: 0; transform: translateY(10px) scale(.97); }
+          to { opacity: 1; transform: none; }
         }
+        #splash-screen.splash-exit { pointer-events: none; opacity: 0; transition: opacity .35s ease; }
 
         #splash-screen {
           position: fixed;
@@ -37,19 +39,12 @@
           align-items: center;
           justify-content: center;
           z-index: 9999;
-          transition: opacity 0.5s;
         }
         .splash-inner {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 36px;
-          animation: splash-content-out 0.5s ease-in forwards;
-          animation-delay: 7s;
-        }
-        @keyframes splash-content-out {
-          0%   { opacity: 1; }
-          100% { opacity: 0; }
         }
         .splash-avatar {
           position: relative;
@@ -108,24 +103,22 @@
           width: 320px;
           height: 2px;
           background: rgba(255,255,255,0.18);
+          overflow: hidden;
         }
         .splash-bar-fill {
           height: 100%;
           background: rgba(255,255,255,0.65);
-          width: 0%;
-          animation: splash-load 6s linear forwards;
+          width: 40%;
+          animation: splash-load 1.2s ease-in-out infinite alternate;
         }
         @keyframes splash-load {
-          0%   { width: 0%; }
-          15%  { width: 22%; }
-          28%  { width: 27%; }
-          40%  { width: 55%; }
-          52%  { width: 58%; }
-          60%  { width: 62%; }
-          74%  { width: 80%; }
-          84%  { width: 83%; }
-          93%  { width: 95%; }
-          100% { width: 100%; }
+          from { transform: translateX(-100%); }
+          to   { transform: translateX(250%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          #root.app-enter, .splash-eye::after, .splash-bar-fill { animation: none; }
+          #splash-screen.splash-exit { transition: none; }
+          .splash-eye::after { transform: scaleY(1); }
         }
       </style>
   </head>
@@ -143,45 +136,11 @@
           <div class="splash-bar-fill"></div>
         </div>
         <div class="splash-text-wrap">
-          <span id="splash-msg" class="splash-text"></span>
+          <span id="splash-msg" class="splash-text" role="status">Preparing Mycelium...</span>
         </div>
       </div>
     </div>
     <div id="root"></div>
-    <script>
-      (function () {
-        const MESSAGES = [
-          "waking up cyphel, *yawns*",
-          "doing stuff",
-          "this bar is fake but we're getting there",
-          "please work please work please work"
-        ];
-        const CHAR_DELAY = 32;
-        const MSG_PAUSE  = 800;
-
-        const el = document.getElementById('splash-msg');
-        if (!el) return;
-
-        let mi = 0, ci = 0;
-
-        function tick() {
-          if (mi >= MESSAGES.length) return;
-          const msg = MESSAGES[mi];
-          if (ci <= msg.length) {
-            el.textContent = msg.slice(0, ci);
-            ci++;
-            setTimeout(tick, CHAR_DELAY);
-          } else {
-            ci = 0; mi++;
-            if (mi < MESSAGES.length) {
-              setTimeout(function () { el.textContent = ''; tick(); }, MSG_PAUSE);
-            }
-          }
-        }
-
-        setTimeout(tick, 300);
-      })();
-    </script>
-    <script type="module" src="/src/main.tsx"></script>
+<script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

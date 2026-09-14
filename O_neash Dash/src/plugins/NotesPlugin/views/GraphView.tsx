@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { loadNotes, loadAllLinks } from '../lib/notesDb';
+import { subscribeNoteChanges } from '../lib/noteEvents';
 import type { NoteRow } from '../lib/notesDb';
 import { usePlannerStore } from '../../PlannerPlugin/store/usePlannerStore';
 import { useFontStack } from '../../../lib/useFontStack';
@@ -205,6 +206,8 @@ export default function GraphView({ onOpenDoc }: GraphViewProps) {
 
   const [hoverLabel, setHoverLabel] = useState<{ x: number; y: number; label: string } | null>(null);
   const [ready, setReady]           = useState(false);
+  const [noteRevision, setNoteRevision] = useState(0);
+  useEffect(() => subscribeNoteChanges(() => setNoteRevision(revision => revision + 1)), []);
 
   // arcs that actually appear in the graph (for legend)
   const [legendArcs, setLegendArcs] = useState<{ name: string; color: string }[]>([]);
@@ -213,10 +216,11 @@ export default function GraphView({ onOpenDoc }: GraphViewProps) {
 
   // ── load data ───────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!arcs.length && !projects.length) return;
+    let active = true;
     (async () => {
       const docs  = await loadNotes('document');
       const links = await loadAllLinks();
+      if (!active) return;
       docsRef.current = docs;
 
       const { w, h } = sizeRef.current;
@@ -282,7 +286,11 @@ export default function GraphView({ onOpenDoc }: GraphViewProps) {
         };
       });
 
-      nodesRef.current = [...projNodes, ...docNodes];
+      const previous = new Map(nodesRef.current.map(node => [node.id, node]));
+      nodesRef.current = [...projNodes, ...docNodes].map(node => {
+        const old = previous.get(node.id);
+        return old ? { ...node, x: old.x, y: old.y, vx: old.vx, vy: old.vy, pinned: old.pinned } : node;
+      });
       edgesRef.current = allEdges;
 
       // legend: arcs that have at least one doc
@@ -294,8 +302,9 @@ export default function GraphView({ onOpenDoc }: GraphViewProps) {
       );
 
       setReady(true);
-    })();
-  }, [arcs, projects]);
+    })().catch(error => { if (active) console.error('Cannot refresh note graph', error); });
+    return () => { active = false; };
+  }, [arcs, projects, noteRevision]);
 
   // ── animation loop ──────────────────────────────────────────────────────────
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from 'react';
 import { Bulletlist } from 'pixelarticons/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -22,7 +22,10 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { common, createLowlight } from 'lowlight';
 import type { Editor } from '@tiptap/react';
 import type { NoteRow } from '../lib/notesDb';
-import { loadNotes, syncLinks, getBacklinks, type BacklinkRow } from '../lib/notesDb';
+import { getDocumentCatalog, getBacklinks, type BacklinkRow } from '../lib/notesDb';
+import { useNotesStore } from '../store/useNotesStore';
+import { subscribeNoteChanges } from '../lib/noteEvents';
+import { resolveWikiTarget } from '../lib/noteLinks';
 import { usePlannerStore } from '../../PlannerPlugin/store/usePlannerStore';
 import { CommentMark } from './CommentExtension';
 import CommentPanel from './CommentPanel';
@@ -30,10 +33,10 @@ import { useCommentsStore } from '../store/useCommentsStore';
 import { WikiLink, type WikiSuggestion } from './WikiLinkExtension';
 import { KatexExtension } from './LatexExtension';
 import LinkTransition from './LinkTransition';
-import { exportDocumentPdf } from '../lib/exportPdf';
+import { exportDocumentPdf, supportsDocumentPdf } from '../lib/exportPdf';
 import { WebLinkView } from './WebLinkView';
 import { NotesImageExtension } from './NotesImageExtension';
-import { saveImageBlob, extFromMime, cleanupOrphanImages } from '../lib/notesImageLib';
+import { saveImageBlob, extFromMime } from '../lib/notesImageLib';
 import 'katex/dist/katex.min.css';
 
 // ── Block cursor extension ────────────────────────────────────────────────────
@@ -112,11 +115,13 @@ const ZOOM_STEP = 0.1;
 
 // ── Toolbar button (dark bg) ───────────────────────────────────────────────────
 
-function TB({ label, active, onClick, title }: { label: string; active?: boolean; onClick: () => void; title?: string }) {
+function TB({ label, active, onClick, title, disabled = false }: { label: string; active?: boolean; onClick: () => void; title?: string; disabled?: boolean }) {
   const [hov, setHov] = useState(false);
   return (
     <div style={{ position: 'relative', display: 'inline-flex' }}>
       <button
+        disabled={disabled}
+        title={title}
         onMouseDown={e => { e.preventDefault(); onClick(); }}
         onMouseEnter={() => setHov(true)}
         onMouseLeave={() => setHov(false)}
@@ -125,7 +130,7 @@ function TB({ label, active, onClick, title }: { label: string; active?: boolean
           background: active ? 'rgba(255,255,255,0.14)' : hov ? 'rgba(255,255,255,0.07)' : 'transparent',
           border: `1px solid ${active ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.07)'}`,
           color: active ? '#fff' : hov ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.4)',
-          padding: '3px 10px', cursor: 'pointer', minWidth: 34,
+          padding: '3px 10px', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1, minWidth: 34,
           textAlign: 'center' as const, lineHeight: 1.6, letterSpacing: 0.3,
           transition: 'all 0.1s',
         }}
@@ -462,7 +467,7 @@ function LinkToolbar({ editor }: { editor: Editor }) {
 
 interface Props {
   doc:                NoteRow;
-  onSave:             (title: string, json: string) => void;
+  onSave:             (title: string, json: string) => Promise<void>;
   onBack:             () => void;
   onDelete?:          () => void;
   onNavigate?:        (docId: string) => void;
@@ -472,7 +477,21 @@ interface Props {
 }
 
 export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavigate, hideOutline = false, hideCommentPanel = false, transparentBg = false }: Props) {
-  const [title,    setTitle]    = useState(doc.title ?? '');
+  const title = doc.title ?? '';
+  const allDocs = useNotesStore(state => state.documents);
+  const saveState = useNotesStore(state => state.saveStates[doc.id]);
+  const flushDocument = useNotesStore(state => state.flushDocument);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [pdfAvailable, setPdfAvailable] = useState(false);
+  const saveRef = useRef(onSave);
+  saveRef.current = onSave;
+  const docIdRef = useRef(doc.id);
+  docIdRef.current = doc.id;
+  const saveContent = useCallback((nextTitle: string, json: string) => {
+    setActionError(null);
+    // The queue reports only the latest revision's failure; an older failed save must not mask a newer success.
+    void saveRef.current(nextTitle, json).catch(() => {});
+  }, []);
   const [zoom,     setZoom]     = useState(1.3);
   const [headings, setHeadings] = useState<TocItem[]>([]);
   const [activeHeadingIdx, setActiveHeadingIdx] = useState<number | null>(null);
@@ -484,12 +503,14 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
   const project = doc.project_id ? projects.find(p => p.id === doc.project_id) : null;
 
   // ── Comments ──────────────────────────────────────────────────────────────
-  const { comments, activeId, load: loadComments, add: addComment, remove: removeComment, update: updateComment, setActive } = useCommentsStore();
+  const { byDocument, activeByDocument, load: loadComments, add: addComment, remove: removeComment, update: updateComment } = useCommentsStore();
+  const comments = byDocument[doc.id] ?? [];
+  const activeId = activeByDocument[doc.id] ?? null;
+  const setActive = (id: string | null) => useCommentsStore.getState().setActive(doc.id, id);
   const [hasSelection,   setHasSelection]   = useState(false);
   const [selectionRange, setSelectionRange] = useState<{ from: number; to: number } | null>(null);
   const [backlinks,      setBacklinks]      = useState<BacklinkRow[]>([]);
   const [armedDelete,    setArmedDelete]    = useState(false);
-  const [allDocs,        setAllDocs]        = useState<NoteRow[]>([]);
   const [linkTx,         setLinkTx]        = useState<{ toDocId: string } | null>(null);
   const [wikiSuggestion, setWikiSuggestion] = useState<WikiSuggestion | null>(null);
   const [wikiIdx,        setWikiIdx]        = useState(0);
@@ -516,6 +537,7 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
       WebLinkView,
       NotesImageExtension,
       WikiLink.configure({
+        resolveTarget: title => resolveWikiTarget({ title }, useNotesStore.getState().documents),
         onSuggestion: (s) => wikiCbRef.current.onSuggestion(s),
         onKeyDown:    (a) => wikiCbRef.current.onKeyDown(a),
       }),
@@ -568,32 +590,48 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
     },
     onUpdate: ({ editor }) => {
       const json = JSON.stringify(editor.getJSON());
-      onSave(title, json);
+      const latestTitle = useNotesStore.getState().documents.find(note => note.id === docIdRef.current)?.title ?? '';
+      saveContent(latestTitle, json);
       setHeadings(extractHeadings(editor.getJSON()));
-      syncLinks(doc.id, json).then(() => getBacklinks(doc.id).then(setBacklinks));
     },
   }, [doc.id]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!editor) return;
-    editor.commands.setContent(loadContent(doc.content_json), { emitUpdate: false });
-    setTitle(doc.title ?? '');
+    const content = loadContent(doc.content_json);
+    if (JSON.stringify(editor.getJSON()) !== JSON.stringify(content)) {
+      const { from, to } = editor.state.selection;
+      editor.commands.setContent(content, { emitUpdate: false });
+      const end = editor.state.doc.content.size;
+      editor.commands.setTextSelection({ from: Math.min(from, end), to: Math.min(to, end) });
+    }
     setHeadings(extractHeadings(editor.getJSON()));
+  }, [editor, doc.id, doc.content_json]);
+
+  useEffect(() => {
+    setActionError(null);
     loadComments(doc.id);
-    getBacklinks(doc.id).then(setBacklinks);
+    let generation = 0;
+    const refresh = () => {
+      const current = ++generation;
+      void getBacklinks(doc.id).then(rows => { if (generation === current) setBacklinks(rows); }).catch(() => {});
+    };
+    refresh();
+    const unsubscribe = subscribeNoteChanges(refresh);
+    return () => { generation++; unsubscribe(); };
   }, [doc.id]);
 
   useEffect(() => {
     if (editor) setHeadings(extractHeadings(editor.getJSON()));
   }, [editor]);
 
-  // Orphan image cleanup — runs once when the editor unmounts (user navigates away)
   useEffect(() => {
-    return () => { cleanupOrphanImages().catch(() => {}); };
+    void useNotesStore.getState().loadDocuments().catch(error => setActionError(String(error)));
+    void supportsDocumentPdf().then(setPdfAvailable);
   }, []);
 
-  // Load all docs for wiki-link autocomplete
-  useEffect(() => { loadNotes('document').then(setAllDocs); }, [doc.id]);
+  // The queue lives outside the editor, and continues to save after a view is closed.
+  useEffect(() => () => { void flushDocument(doc.id).catch(() => {}); }, [doc.id, flushDocument]);
 
   // Reset selected index when query changes
   useEffect(() => { setWikiIdx(0); }, [wikiSuggestion?.query]);
@@ -609,8 +647,8 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
 
   const handleTitleBlur = useCallback(() => {
     if (!editor) return;
-    onSave(title, JSON.stringify(editor.getJSON()));
-  }, [title, editor, onSave]);
+    void flushDocument(doc.id).catch(error => setActionError(String(error)));
+  }, [doc.id, editor, flushDocument]);
 
   // 6e — scroll active comment mark into view
   useEffect(() => {
@@ -663,8 +701,8 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
       const markEl = (event.target as HTMLElement).closest('[data-comment-id]') as HTMLElement | null;
       if (markEl) {
         const markId = markEl.getAttribute('data-comment-id');
-        const c = useCommentsStore.getState().comments.find(x => x.mark_id === markId);
-        if (c) useCommentsStore.getState().setActive(c.id);
+        const c = useCommentsStore.getState().byDocument[doc.id]?.find(x => x.mark_id === markId);
+        if (c) useCommentsStore.getState().setActive(doc.id, c.id);
       }
     };
     dom.addEventListener('click', handleClick);
@@ -680,12 +718,13 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
     const handleClick = async (event: MouseEvent) => {
       const el = (event.target as HTMLElement).closest('.wiki-link') as HTMLElement | null;
       if (!el) return;
-      const wikiTitle = el.getAttribute('data-wiki-title');
-      if (!wikiTitle) return;
-      const allDocs = await loadNotes('document');
-      if (!active) return;
-      const target = allDocs.find(d => (d.title ?? '').toLowerCase() === wikiTitle.toLowerCase());
-      if (target) setLinkTx({ toDocId: target.id });
+      try {
+        const catalog = await getDocumentCatalog();
+        if (!active) return;
+        const targetId = resolveWikiTarget({ targetId: el.getAttribute('data-wiki-id'), title: el.getAttribute('data-wiki-title') }, catalog);
+        if (targetId) setLinkTx({ toDocId: targetId });
+        else setActionError('This link has no unique target. Choose a document from the link suggestions.');
+      } catch (error) { if (active) setActionError(String(error)); }
     };
     dom.addEventListener('click', handleClick);
     return () => { active = false; dom.removeEventListener('click', handleClick); };
@@ -707,7 +746,7 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
       .deleteRange({ from: wikiSuggestion.from, to: wikiSuggestion.to })
       .insertContentAt(wikiSuggestion.from, {
         type: 'wikiLink',
-        attrs: { title: target.title ?? 'untitled', alias: null },
+        attrs: { targetId: target.id, title: target.title ?? 'untitled', alias: null },
       })
       .run();
     setWikiSuggestion(null);
@@ -747,7 +786,7 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
     editor.view.dispatch(tr);
     await addComment(doc.id, markId, body);
     setSelectionRange(null);
-    onSave(title, JSON.stringify(editor.getJSON()));
+    saveContent(title, JSON.stringify(editor.getJSON()));
   }
 
   function handleCancelCompose() {
@@ -788,7 +827,7 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
         {/* Delete */}
         {onDelete && (
           <button
-            onClick={() => { if (armedDelete) { onDelete(); cleanupOrphanImages().catch(() => {}); } else { setArmedDelete(true); } }}
+            onClick={() => { if (armedDelete) { onDelete(); } else { setArmedDelete(true); } }}
             onBlur={() => setArmedDelete(false)}
             style={{
               fontFamily: VT, fontSize: '0.9rem', letterSpacing: 1,
@@ -805,6 +844,10 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
           </button>
         )}
 
+        <span role={saveState?.status === 'error' || actionError ? 'alert' : 'status'} style={{ marginLeft: 14, fontSize: '0.85rem', color: saveState?.status === 'error' || actionError ? '#f87171' : '#999' }}>
+          {actionError ?? (saveState?.status === 'error' ? `Save failed: ${saveState.error}` : saveState?.status === 'pending' || saveState?.status === 'saving' ? 'Saving…' : 'Saved')}
+          {saveState?.status === 'error' && <button onClick={() => { setActionError(null); void flushDocument(doc.id).catch(error => setActionError(String(error))); }} style={{ marginLeft: 8 }}>Retry save</button>}
+        </span>
         {/* Zoom — right */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           <button
@@ -866,18 +909,19 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
           />
           <Sep />
           <TB
-            label="PDF"
-            title="Export as PDF"
+            label={pdfAvailable ? 'PDF' : 'PDF unavailable'}
+            title={pdfAvailable ? 'Export as PDF' : 'PDF export is available on macOS only.'}
+            disabled={!pdfAvailable}
             onClick={() => {
               if (!editor) return;
-              exportDocumentPdf({
+              void flushDocument(doc.id).then(() => exportDocumentPdf({
                 title,
                 arc:       arc ?? null,
                 project:   project ?? null,
                 createdAt: doc.created_at,
                 updatedAt: doc.updated_at,
                 editorDom: editor.view.dom,
-              });
+              })).catch(error => setActionError(String(error)));
             }}
           />
         </div>
@@ -1065,7 +1109,7 @@ export default function TypewriterEditor({ doc, onSave, onBack, onDelete, onNavi
             ref={titleRef}
             value={title}
             onChange={ev => {
-              setTitle(ev.target.value);
+              saveContent(ev.target.value, JSON.stringify(editor.getJSON()));
               ev.target.style.height = 'auto';
               ev.target.style.height = ev.target.scrollHeight + 'px';
             }}

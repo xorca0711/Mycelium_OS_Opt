@@ -1,3 +1,4 @@
+import { FeedGate, canFetchFeed } from '../../lib/personalFeatures';
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetch } from '@tauri-apps/plugin-http';
@@ -5,6 +6,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { Megaphone, ChevronLeft, ChevronRight } from 'pixelarticons/react';
 import type { WidgetProps } from '../types';
 import { pickDailySample, todaySeed } from '../lib/dailySample';
+import { createFeedCache } from '../lib/feedCache';
 
 /** HBIOS-SYS is the Korean-glyph fallback (VT323 has no Hangul coverage). */
 const FONT = "var(--font-main), var(--font-kr), monospace";
@@ -38,6 +40,9 @@ interface FeedEntry {
   source: FeedSource;
 }
 
+const feedCache = createFeedCache<FeedEntry>();
+const cachedPool = () => ['HN', 'World', 'Korea'].flatMap(source => feedCache.peek(source));
+
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return '';
@@ -45,6 +50,7 @@ function formatDate(dateStr: string): string {
 }
 
 async function fetchHN(): Promise<FeedEntry[]> {
+  if (!canFetchFeed('news')) return [];
   try {
     const res = await fetch(`https://hn.algolia.com/api/v1/search?tags=front_page&hitsPerPage=${POOL_SIZE_PER_SOURCE}`);
     if (!res.ok) return [];
@@ -62,6 +68,7 @@ async function fetchHN(): Promise<FeedEntry[]> {
 }
 
 async function fetchRss(url: string, source: 'World' | 'Korea'): Promise<FeedEntry[]> {
+  if (!canFetchFeed('news')) return [];
   try {
     const res = await fetch(url);
     if (!res.ok) return [];
@@ -81,8 +88,15 @@ async function fetchRss(url: string, source: 'World' | 'Korea'): Promise<FeedEnt
   }
 }
 
-export function HackerNews({ instanceId }: WidgetProps) {
-  const [pool, setPool]         = useState<FeedEntry[]>([]);
+export function HackerNews(props: WidgetProps) {
+  return <FeedGate feature="news"><HackerNewsContent {...props}/></FeedGate>;
+}
+
+function HackerNewsContent({ instanceId }: WidgetProps) {
+  const [pool, setPool]         = useState<FeedEntry[]>(() => {
+    const items = cachedPool();
+    return pickDailySample(items, items.length, `news-${todaySeed()}`);
+  });
   const [page, setPage]         = useState(0);
   const [error, setError]       = useState(false);
   const [selected, setSelected] = useState<FeedSource | null>('World');
@@ -90,9 +104,9 @@ export function HackerNews({ instanceId }: WidgetProps) {
   useEffect(() => {
     let cancelled = false;
     Promise.all([
-      fetchHN(),
-      fetchRss('https://feeds.bbci.co.uk/news/world/rss.xml', 'World'),
-      fetchRss('https://www.yna.co.kr/rss/news.xml', 'Korea'),
+      feedCache.load('HN', fetchHN),
+      feedCache.load('World', () => fetchRss('https://feeds.bbci.co.uk/news/world/rss.xml', 'World')),
+      feedCache.load('Korea', () => fetchRss('https://www.yna.co.kr/rss/news.xml', 'Korea')),
     ]).then(([hn, world, korea]) => {
       if (cancelled) return;
       const merged = [...hn, ...world, ...korea];

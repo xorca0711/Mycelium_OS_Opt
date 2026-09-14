@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { format } from 'date-fns';
 import { AlarmClock } from 'pixelarticons/react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
+import { usePersonalSettingsStore } from '../../../store/usePersonalSettingsStore';
 
 interface DatePickerFieldProps {
   value: Date | null;
@@ -22,6 +22,7 @@ const TypedPopoverContent = PopoverContent as React.FC<any>;
 const TypedCalendar = Calendar as React.FC<any>;
 
 export default function DatePickerField({ value, onChange, placeholder, triggerClassName, triggerStyle, hideIcon, toDate }: DatePickerFieldProps) {
+  const locale = usePersonalSettingsStore(s => s.settings.locale);
   const [open, setOpen] = useState(false);
 
   return (
@@ -33,7 +34,7 @@ export default function DatePickerField({ value, onChange, placeholder, triggerC
           style={triggerStyle}
         >
           {!hideIcon && <AlarmClock width={13} height={13} />}
-          {value ? format(value, 'MMM d, yyyy') : (placeholder ?? 'pick a date')}
+          {value ? value.toLocaleDateString(locale === 'system' ? undefined : locale, { month: 'short', day: 'numeric', year: 'numeric' }) : (placeholder ?? 'pick a date')}
         </Button>
       </PopoverTrigger>
       <TypedPopoverContent className="w-auto p-0 bg-black border-[rgba(255,255,255,0.09)] rounded-none">

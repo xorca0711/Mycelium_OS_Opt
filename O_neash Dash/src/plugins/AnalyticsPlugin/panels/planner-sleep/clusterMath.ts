@@ -1,6 +1,7 @@
-import { getEntries } from "../../../SleepTrackerPlugin/lib/sleepDb";
+import { loadAnalyticsSleep } from './sleepWindowData';
+import { analyticsRange, buildWakingWindows } from './sleepWindows';
 import { loadArcs, loadIrfTaskDataWithArc } from "../../../PlannerPlugin/lib/plannerDb";
-import { loadAllDoneSessionNodeMinutes } from "../../../PlannerPlugin/lib/onTheClockDb";
+import { loadTaskSessionMinutes } from "../../../PlannerPlugin/lib/onTheClockDb";
 
 export const ROLLING_WINDOW = 10;
 export const CLUSTER_COLORS = ["#00c4a7", "#f87171", "#facc15", "#a78bfa", "#38bdf8", "#fb923c", "#4ade80"] as const;
@@ -298,40 +299,31 @@ function buildClusterLabel(
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export async function computeClusters(forcedK?: number): Promise<ClusterResult | null> {
+  const range = analyticsRange(180);
   const [sleepEntries, tasks, arcs, sessionMins] = await Promise.all([
-    getEntries(180),
-    loadIrfTaskDataWithArc(180),
+    loadAnalyticsSleep(range),
+    loadIrfTaskDataWithArc(180, new Date(range.untilMs)),
     loadArcs(),
-    loadAllDoneSessionNodeMinutes(),
+    loadTaskSessionMinutes(),
   ]);
 
   const sessionMinMap = new Map<string, number>(sessionMins.map(s => [s.node_id, s.total_minutes]));
   const avgSessionMinutes = sessionMins.length > 0
     ? sessionMins.reduce((s, v) => s + v.total_minutes, 0) / sessionMins.length
     : 30;
-  if (sleepEntries.length < 20) return null;
 
   // Build a stable arc index map (ordered by arc creation, matching loadArcs order)
   const arcIdToIdx = new Map(arcs.map((a, i) => [a.id, i]));
   const arcNames   = arcs.map(a => a.name.toUpperCase());
 
-  const sorted = [...sleepEntries].sort(
-    (a, b) => new Date(a.sleep_start).getTime() - new Date(b.sleep_start).getTime(),
-  );
-
   const globalMeanSleepHolder = { v: 0 };
 
-  const days = sorted.map((e, i) => {
-    const sleepStartMs = new Date(e.sleep_start).getTime();
-    const wakeMs       = new Date(e.wake_time).getTime();
-    const sleepMs      = i < sorted.length - 1
-      ? new Date(sorted[i + 1].sleep_start).getTime() : Date.now();
+  const days = buildWakingWindows(sleepEntries, range).map(window => {
+    const { sleepStartMs, wakeMs } = window;
     const wakeDate = new Date(wakeMs);
     return {
-      date:          wakeDate.toISOString().slice(0, 10),
-      wakeMs, sleepMs,
-      wakingHours:   Math.max(0.5, Math.min(20, (sleepMs - wakeMs) / 3_600_000)),
-      sleepH:        Math.max(0, (wakeMs - sleepStartMs) / 3_600_000),
+      ...window,
+      sleepH:        window.sleepDurationH,
       bedtimeH:      new Date(sleepStartMs).getHours() + new Date(sleepStartMs).getMinutes() / 60,
       wakeH:         wakeDate.getHours() + wakeDate.getMinutes() / 60,
       dayOfWeek:     wakeDate.getDay(),
@@ -341,6 +333,7 @@ export async function computeClusters(forcedK?: number): Promise<ClusterResult |
       medianHour:    0 as number,
     };
   });
+  if (days.length < 20) return null;
 
   const globalMeanSleep = days.reduce((s, d) => s + d.sleepH, 0) / days.length;
   globalMeanSleepHolder.v = globalMeanSleep;

@@ -1,24 +1,26 @@
-import NotesPlugin from "./NotesPlugin/NotesPlugin";
-import PlannerPlugin from "./PlannerPlugin/PlannerPlugin";
-import SettingsPlugin from "./SettingsPlugin/SettingsPlugin";
-import SleepTrackerPlugin from "./SleepTrackerPlugin/SleepTrackerPlugin";
-import ESRAPlugin from "./ESRAPlugin/ESRAPlugin";
-import HabitsPlugin from "./HabitsPlugin/HabitsPlugin";
-import JournalPlugin from "./JournalPlugin/JournalPlugin";
-import ProjectsPlugin from "./ProjectsPlugin/ProjectsPlugin";
-import AcademicPlugin from "./AcademicPlugin/AcademicPlugin";
-import AnalyticsPlugin from "./AnalyticsPlugin/AnalyticsPlugin";
-import WardrobePlugin from "./WardrobePlugin/WardrobePlugin";
-import FilmNegLabPlugin from "./FilmNegLabPlugin/FilmNegLabPlugin";
-import SnakePlugin from "./SnakePlugin/SnakePlugin";
-import TwentyFortyEightPlugin from "./TwentyFortyEightPlugin/TwentyFortyEightPlugin";
-import PongPlugin from "./PongPlugin/PongPlugin";
-import BreakoutPlugin from "./BreakoutPlugin/BreakoutPlugin";
-import AsteroidsPlugin from "./AsteroidsPlugin/AsteroidsPlugin";
-import LunarLanderPlugin from "./LunarLanderPlugin/LunarLanderPlugin";
-import ArtilleryDuelPlugin from "./ArtilleryDuelPlugin/ArtilleryDuelPlugin";
-import BattleshipPlugin from "./BattleshipPlugin/BattleshipPlugin";
+import { lazy } from "react";
 import type { PluginItem } from "@/types";
+
+const NotesPlugin = lazy(() => import("./NotesPlugin/NotesPlugin"));
+const PlannerPlugin = lazy(() => import("./PlannerPlugin/PlannerPlugin"));
+const SettingsPlugin = lazy(() => import("./SettingsPlugin/SettingsPlugin"));
+const SleepTrackerPlugin = lazy(() => import("./SleepTrackerPlugin/SleepTrackerPlugin"));
+const ESRAPlugin = lazy(() => import("./ESRAPlugin/ESRAPlugin"));
+const HabitsPlugin = lazy(() => import("./HabitsPlugin/HabitsPlugin"));
+const JournalPlugin = lazy(() => import("./JournalPlugin/JournalPlugin"));
+const ProjectsPlugin = lazy(() => import("./ProjectsPlugin/ProjectsPlugin"));
+const AcademicPlugin = lazy(() => import("./AcademicPlugin/AcademicPlugin"));
+const AnalyticsPlugin = lazy(() => import("./AnalyticsPlugin/AnalyticsPlugin"));
+const WardrobePlugin = lazy(() => import("./WardrobePlugin/WardrobePlugin"));
+const FilmNegLabPlugin = lazy(() => import("./FilmNegLabPlugin/FilmNegLabPlugin"));
+const SnakePlugin = lazy(() => import("./SnakePlugin/SnakePlugin"));
+const TwentyFortyEightPlugin = lazy(() => import("./TwentyFortyEightPlugin/TwentyFortyEightPlugin"));
+const PongPlugin = lazy(() => import("./PongPlugin/PongPlugin"));
+const BreakoutPlugin = lazy(() => import("./BreakoutPlugin/BreakoutPlugin"));
+const AsteroidsPlugin = lazy(() => import("./AsteroidsPlugin/AsteroidsPlugin"));
+const LunarLanderPlugin = lazy(() => import("./LunarLanderPlugin/LunarLanderPlugin"));
+const ArtilleryDuelPlugin = lazy(() => import("./ArtilleryDuelPlugin/ArtilleryDuelPlugin"));
+const BattleshipPlugin = lazy(() => import("./BattleshipPlugin/BattleshipPlugin"));
 
 export const plugins: PluginItem[] = [
   { id: "notes",        name: "Notes",           component: NotesPlugin         },

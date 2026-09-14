@@ -1,3 +1,4 @@
+import { canFetchFeed } from '../../lib/personalFeatures';
 import { fetch } from "@tauri-apps/plugin-http";
 
 export interface DailyQuote {
@@ -43,6 +44,7 @@ export async function fetchDailyQuote(): Promise<DailyQuote> {
   }
 
   try {
+    if (!canFetchFeed('quotes')) return pickFallback(false);
     const res = await fetch("https://ron-swanson-quotes.herokuapp.com/v2/quotes");
     if (!res.ok) return pickFallback(false);
     const data: string[] = await res.json();
@@ -58,6 +60,7 @@ export async function fetchDailyQuote(): Promise<DailyQuote> {
 
 /** Fetches a fresh random quote, bypassing the daily cache — used for click-to-refresh. */
 export async function fetchRandomQuote(): Promise<DailyQuote> {
+  if (!canFetchFeed('quotes')) return pickFallback(true);
   try {
     const res = await fetch("https://ron-swanson-quotes.herokuapp.com/v2/quotes");
     if (!res.ok) return pickFallback(true);

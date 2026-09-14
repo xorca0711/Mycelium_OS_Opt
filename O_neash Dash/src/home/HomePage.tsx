@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import ClockPlugin from "../plugins/ClockPlugin/ClockPlugin";
 import { LaunchMenu } from "./LaunchMenu";
-import { WidgetPanel } from "../widgets/WidgetPanel";
 import { HackerNews } from "../widgets/widgets/HackerNews";
 import { ResearchFeed } from "../widgets/widgets/ResearchFeed";
 import { usePlannerStore } from "../plugins/PlannerPlugin/store/usePlannerStore";
 import { QuickActionButtons } from "./quick-actions/QuickActionButtons";
 import { WeatherPanel } from "./weather/WeatherPanel";
+import { usePersonalSettingsStore } from '../store/usePersonalSettingsStore';
+import usePluginStore from '../store/usePluginStore';
+import { feedEnabled, pluginEnabled } from '../lib/personalFeaturePolicy';
+import './HomePage.css';
 import { QuotePanel } from "./quote/QuotePanel";
 
 // Eye positions calibrated to cyphel_grey_noeyes.png at 140×140px
@@ -70,14 +73,22 @@ function AvatarWithEyes() {
 }
 
 function HomePage() {
+  const { settings, loaded, error } = usePersonalSettingsStore();
+  const openProfileSettings = usePluginStore(state => state.openProfileSettings);
+  const ready = loaded && !error;
+  const showNews = feedEnabled('news', settings, ready);
+  const showResearch = feedEnabled('research', settings, ready);
+  const showWeather = feedEnabled('weather', settings, ready);
+  const showQuotes = feedEnabled('quotes', settings, ready);
+  const plannerVisible = pluginEnabled('planner', settings.disabledPluginIds, ready);
   const loadAll = usePlannerStore((s) => s.loadAll);
 
   useEffect(() => {
-    loadAll();
-  }, []);
+    if (plannerVisible) void loadAll();
+  }, [loadAll, plannerVisible]);
 
   return (
-    <div
+    <div className="personal-home"
       style={{
         position: "relative",
         height: "100%",
@@ -89,7 +100,7 @@ function HomePage() {
         padding: "0 6vw",
       }}
     >
-      <div
+      <div className="personal-home-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "auto auto",
@@ -100,7 +111,7 @@ function HomePage() {
         }}
       >
         {/* ── Avatar + clock ── */}
-        <div style={{ gridColumn: "1 / 3", gridRow: 1, display: "flex", alignItems: "flex-start" }}>
+        <div className="personal-home-header" style={{ gridColumn: "1 / 3", gridRow: 1, display: "flex", alignItems: "flex-start" }}>
           <div
             style={{
               display: "flex",
@@ -110,7 +121,7 @@ function HomePage() {
               marginTop: 20,
             }}
           >
-            <AvatarWithEyes />
+            {settings.avatarDataUrl ? <img src={settings.avatarDataUrl} alt="Profile" style={{ width: 140, height: 140, objectFit: 'cover', borderRadius: 12 }} /> : <AvatarWithEyes />}
             <div style={{ fontFamily: "var(--font-main), var(--font-kr), monospace" }}>
               <div
                 style={{
@@ -119,7 +130,7 @@ function HomePage() {
                   letterSpacing: "2px",
                 }}
               >
-                Welcome,
+                {settings.displayName ? "Welcome," : "Welcome"}
               </div>
               <div
                 style={{
@@ -127,17 +138,20 @@ function HomePage() {
                   color: "#fff",
                   letterSpacing: "3px",
                   lineHeight: 1.1,
+                  maxWidth: 200,
+                  overflowWrap: "anywhere",
                 }}
               >
-                HAN-JAE
+                {settings.displayName || 'Your name'}
               </div>
+              <button type="button" className="personal-home-edit-profile" onClick={openProfileSettings}>Edit profile</button>
             </div>
           </div>
 
           <ClockPlugin />
 
           <div style={{ marginLeft: "auto", marginTop: 20 }}>
-            <WeatherPanel />
+            {showWeather && <WeatherPanel />}
           </div>
 
           <div style={{ marginLeft: 32, alignSelf: "stretch", paddingTop: 20, boxSizing: "border-box" }}>
@@ -146,23 +160,23 @@ function HomePage() {
         </div>
 
         {/* ── News / research feeds ── */}
-        <div style={{ gridColumn: 1, gridRow: 2, display: "flex", flexDirection: "column", gap: 10, width: 580 }}>
+        <div className="personal-home-feeds" style={{ gridColumn: 1, gridRow: 2, display: "flex", flexDirection: "column", gap: 10, width: 580 }}>
           <div style={{ position: "relative" }}>
-            <HackerNews size="2x2" instanceId="home-hn" />
+            {showNews && <HackerNews size="2x2" instanceId="home-hn" />}
           </div>
           <div style={{ position: "relative" }}>
-            <ResearchFeed size="2x2" instanceId="home-research" />
+            {showResearch && <ResearchFeed size="2x2" instanceId="home-research" />}
           </div>
         </div>
 
         {/* ── App selector — top-aligned with the news feeds ── */}
-        <div style={{ gridColumn: 2, gridRow: 2, flexShrink: 0 }}>
+        <div className="personal-home-launcher" style={{ gridColumn: 2, gridRow: 2, flexShrink: 0 }}>
           <LaunchMenu />
         </div>
       </div>
 
       {/* ── Quote of the day — bottom center ── */}
-      <div
+      <div className="personal-home-quote"
         style={{
           position: "absolute",
           bottom: 28,
@@ -171,13 +185,9 @@ function HomePage() {
           textAlign: "center",
         }}
       >
-        <QuotePanel />
+        {showQuotes && <QuotePanel />}
       </div>
 
-      {/* ── Widget panel — hidden, code preserved ── */}
-      <div style={{ display: "none" }}>
-        <WidgetPanel />
-      </div>
     </div>
   );
 }

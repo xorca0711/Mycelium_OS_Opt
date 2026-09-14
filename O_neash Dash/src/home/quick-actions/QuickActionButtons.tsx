@@ -1,3 +1,5 @@
+import { usePersonalSettingsStore } from '../../store/usePersonalSettingsStore';
+import { pluginEnabled } from '../../lib/personalFeaturePolicy';
 import { useEffect, useState } from "react";
 import { Bed, HumanArmsUp, Algorithm } from "pixelarticons/react";
 import LogEntryModal from "../../plugins/SleepTrackerPlugin/components/LogEntryModal";
@@ -51,6 +53,11 @@ async function fetchRunLogs(): Promise<{ habitId: string | null; logs: HabitLog[
 }
 
 export function QuickActionButtons() {
+  const { settings, loaded, error } = usePersonalSettingsStore();
+  const ready = loaded && !error;
+  const sleepVisible = pluginEnabled('sleep-tracker', settings.disabledPluginIds, ready);
+  const habitsVisible = pluginEnabled('habits', settings.disabledPluginIds, ready);
+  const plannerVisible = pluginEnabled('planner', settings.disabledPluginIds, ready);
   const [sleepEntries, setSleepEntries] = useState<SleepEntry[]>([]);
   const [runHabitId, setRunHabitId]     = useState<string | null>(null);
   const [runLogs, setRunLogs]           = useState<HabitLog[]>([]);
@@ -65,10 +72,9 @@ export function QuickActionButtons() {
 
   useEffect(() => {
     const refreshAll = () => {
-      refreshSleep();
-      loadSessions();
-      refreshRun();
-      refreshSession();
+      if (sleepVisible) void refreshSleep();
+      if (habitsVisible) void refreshRun();
+      if (plannerVisible) { void loadSessions(); void refreshSession(); }
     };
 
     refreshAll();
@@ -82,7 +88,7 @@ export function QuickActionButtons() {
       window.removeEventListener("focus", refreshAll);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [loadSessions]);
+  }, [loadSessions, sleepVisible, habitsVisible, plannerVisible]);
 
   const yesterdayLogged = sleepEntries.some((e) => e.date === yesterdayStr());
   const todayRunLogged  = runLogs.some((l) => l.habit_id === runHabitId && l.date === todayStr());
@@ -101,7 +107,7 @@ export function QuickActionButtons() {
   return (
     <>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 14, height: "100%" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%" }}>
+        {sleepVisible && <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%" }}>
           <CircleButton
             color={SLEEP_ACC}
             disabled={yesterdayLogged}
@@ -111,9 +117,9 @@ export function QuickActionButtons() {
             <Bed width={20} height={20} />
           </CircleButton>
           <DayOrbs values={sleepDayValues} color={SLEEP_ACC} max={SLEEP_MAX_HOURS} formatValue={formatDuration} />
-        </div>
+        </div>}
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%" }}>
+        {habitsVisible && <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%" }}>
           <CircleButton
             color={RUN_ACC}
             disabled={todayRunLogged}
@@ -123,9 +129,9 @@ export function QuickActionButtons() {
             <HumanArmsUp width={20} height={20} />
           </CircleButton>
           <DayOrbs values={runDayValues} color={RUN_ACC} max={RUN_MAX_KM} formatValue={(v) => `${v.toFixed(1)} km`} />
-        </div>
+        </div>}
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%" }}>
+        {plannerVisible && <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, height: "100%" }}>
           <CircleButton
             color={SESSION_ACC}
             disabled={sessionActive}
@@ -135,10 +141,10 @@ export function QuickActionButtons() {
             <Algorithm width={20} height={20} />
           </CircleButton>
           <DayOrbs values={sessionDayValues} color={SESSION_ACC} max={SESSION_MAX_MIN} formatValue={(v) => formatDuration(v / 60)} />
-        </div>
+        </div>}
       </div>
 
-      {openPopup === "sleep" && (
+      {sleepVisible && openPopup === "sleep" && (
         <LogEntryModal
           existingEntries={sleepEntries}
           initialDate={new Date(`${yesterdayStr()}T12:00:00`)}
@@ -146,10 +152,10 @@ export function QuickActionButtons() {
           onClose={() => setOpenPopup(null)}
         />
       )}
-      {openPopup === "run" && (
+      {habitsVisible && openPopup === "run" && (
         <RunKmPopup onClose={() => { setOpenPopup(null); refreshRun(); }} />
       )}
-      {openPopup === "session" && (
+      {plannerVisible && openPopup === "session" && (
         <StartSessionPopup onClose={() => { setOpenPopup(null); refreshSession(); }} />
       )}
     </>

@@ -1,9 +1,14 @@
+import { FeedGate } from '../../lib/personalFeatures';
 import { useEffect, useState } from "react";
 import { fetchDailyQuote, fetchRandomQuote, type DailyQuote } from "./quoteApi";
 
 const VT = "var(--font-main), var(--font-kr), monospace";
 
 export function QuotePanel() {
+  return <FeedGate feature="quotes"><QuotePanelContent /></FeedGate>;
+}
+
+function QuotePanelContent() {
   const [quote, setQuote] = useState<DailyQuote | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 

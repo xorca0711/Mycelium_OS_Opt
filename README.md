@@ -15,12 +15,84 @@ Run from `O_neash Dash/`:
 ```powershell
 pnpm install --frozen-lockfile
 pnpm typecheck
+pnpm test
 pnpm build
+cargo test --locked --manifest-path .\src-tauri\Cargo.toml --lib database_tests
 cargo check --locked --manifest-path .\src-tauri\Cargo.toml
 pnpm tauri info
 ```
 
-The checked-in pnpm build policy permits only esbuild's required install script. These checks build/inspect the code without launching the application or creating its personal database. Run `pnpm tauri dev` separately when ready for the next step. There is currently no automated application test suite.
+The checked-in pnpm build policy permits only esbuild's required install script. These checks build/inspect the code using isolated test databases. Run `pnpm tauri dev` to launch the desktop app in a normal, resizable 1100 × 720 window. It starts Vite on port 1420 and the native executable; no database server is required. Keep that terminal running during development.
+
+See the [verified project status](docs/project-status.md), [release notes and upstream comparison](docs/release-notes.md), [architecture diagram gallery](docs/architecture/previews.md), [editable draw.io file](docs/architecture/mycelium-architecture.drawio), [customization map](docs/architecture/customization-map.md), and [local database/data-source guide](docs/architecture/local-data-connections.md).
+
+**Personal settings:** Choose **Edit profile** beside the Home greeting to change the display name, or open **Settings → Personal** to edit your name/avatar, home clock timezone, supported regional formats, Planner week start, daily availability, focus/break preferences, modules, feeds and Analytics sources. Save applies preferences and preserves a SQLite revision history. The same screen exposes sleep targets, weather-location clearing, links to goal editors and the local storage path.
+
+**Data tools:** Open **Settings → Data** for table browsing, CSV/JSON exports, workspace backup/restore, and explicit Notion or CSV/JSON imports into Notes. See the [connection guide](docs/architecture/local-data-connections.md) and [import flow](docs/architecture/15-import-flow.svg).
+
+## Standalone Windows app
+
+Build the appropriate Windows installer from `O_neash Dash/`:
+
+```powershell
+pnpm tauri build --bundles nsis --target aarch64-pc-windows-msvc
+# Intel/AMD Windows, after rustup target add x86_64-pc-windows-msvc:
+pnpm tauri build --bundles nsis --target x86_64-pc-windows-msvc
+```
+
+Installers appear under `src-tauri/target/<target>/release/bundle/nsis/`: `Mycelium_0.1.0_arm64-setup.exe` for Windows on ARM, or `Mycelium_0.1.0_x64-setup.exe` for Intel/AMD Windows. Use the installer matching the computer. These are separate native builds of the same app, not a universal binary; macOS requires its own build. After installing, open **Mycelium** from the Start menu. The installed app contains its frontend and runs without Node, pnpm, Rust, Vite, Docker or a database server. WebView2 is required; the installer downloads it if missing. See [Tauri's Windows packaging guide](https://v2.tauri.app/distribute/windows-installer/).
+
+Development and installed copies use separate databases. To transfer your existing development records:
+
+1. Rebuild/open the development app and go to **Settings → Data → Create backup folder**. Choose a folder outside the active data directory.
+2. Close the development app, then open the installed app.
+3. Choose **Settings → Data → Choose backup to preview**, select the complete backup folder, review it and apply.
+4. Close/reopen the installed app. Restore validates and transfers the database, managed images and supported appearance/layout preferences. The previous installed workspace is retained in a rollback folder; its path appears in Data status.
+
+Restore replaces the destination workspace; it does not merge two databases. Keep the complete backup folder. Canceled stages and rollback folders are retained for recovery and consume disk space until you remove copies you no longer need.
+
+## Importing Notion and editable personal data
+
+Create a Notion connection with **Read content** capability and grant it access to the specific page/database. A dedicated “For Mycelium” database is optional. In **Settings → Data**, enter the token in the password field, choose Page/Database/Data source, paste its URL or ID and select **Preview import**. Review actions and warnings, then choose **Import reviewed notes**. Tokens stay in memory and are cleared after successful preview or leaving the screen; never put tokens in Git or send them in chat.
+
+Each selected page or database row becomes a local Notes document. Markdown and available property values are copied as editable text. `import_sources`, `import_records` and `import_runs` store source identities, baseline hashes and import history beside the existing `notes` table. Reimports update unchanged local copies; locally edited, archived or deleted notes are preserved. Importing the same page through different selected containers can create separate copies. This is not a whole-workspace export, relational database mirror, automatic task/habit mapping or two-way sync. Relations remain IDs, attachments remain links, and incomplete/unsupported page bodies are skipped with a warning.
+
+Notion runs only when Preview is requested. Requests are sequential, paced at least 550 ms apart, use bounded retries and respect retry delays. Unchanged pages skip body downloads. Normal startup and editing use local SQLite. The first importer previews at most 100 recently edited database rows; use a smaller dedicated database or individual pages for older rows. A page is limited to one million content characters and a batch to five million.
+
+CSV/JSON imports accept up to 500 records and 10 MiB, with an explicit stable source label and ID/title/content mapping. JSON accepts an array of objects or an object containing a `notes` array. Database table exports are read-only; JSON retains values, while CSV escapes formula-leading text. Edit imported content in **Notes** and profile/planning fields in **Settings → Personal**. Raw table editing and automatic Notion-property mapping into Arc → Project → Task are future extensions.
+
+## Everyday launch on Windows
+
+After the initial native build, double-click [Launch-Mycelium.cmd](O_neash%20Dash/scripts/Launch-Mycelium.cmd) in File Explorer. It starts Vite in the background and opens the existing native executable. It works without pnpm or Rust on your terminal PATH for daily launches; Node.js, installed project dependencies and the built executable are required. Closing the brief launcher terminal does not stop the app. Errors stay visible in that terminal; server logs are under `O_neash Dash/build/launcher/`.
+
+From the **repository root**, PowerShell:
+
+```powershell
+& '.\O_neash Dash\scripts\Launch-Mycelium.cmd'
+```
+
+Git Bash:
+
+```bash
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'O_neash Dash/scripts/start-mycelium.ps1'
+```
+
+The launcher reuses its server when called again. After closing all Mycelium windows, stop that server with the same command followed by `-StopServer`. A server already started by `pnpm tauri dev` must be stopped in its own terminal before using this launcher.
+
+The debug executable at `O_neash Dash/src-tauri/target/debug/Mycelium.exe` needs Vite on port 1420. Use this launcher for development reopening. After native Rust/configuration changes, use `pnpm tauri dev` from `O_neash Dash` to rebuild; keep that development terminal open. The quick launcher does not rebuild Rust or install dependencies. Use the installed Start-menu app for standalone daily use. Only one app instance may use each data environment at a time.
+
+## Returning Home and basic controls
+
+| Action | Existing control |
+|---|---|
+| Return to Home from a module | Move the pointer to the far-left edge of the app's client area, around its vertical middle, then click **HOMEPAGE** in the slide-out menu |
+| Switch modules | Use that same left-edge menu, or return Home and choose an app |
+| Navigate the Home launcher | Left/Right changes categories; Up/Down changes the selected app; Enter opens it; visible category numbers also work |
+| Leave a floating note | Use **← back**, close it, or click its backdrop; pending note saves are flushed first |
+| Open Planner command palette | Ctrl+K on Windows (Cmd+K on macOS), while Planner is active |
+| Change personal preferences | Settings → Personal → Save personal settings |
+
+There is currently **no global Home keyboard shortcut**. Escape closes certain dialogs/quick-action panels; it is not a universal Home/back action. Home launcher shortcuts do not run while editing text or when a floating editor is open. Number keys inside Settings/Notes/Sleep can switch that module's internal tabs instead. Save or discard personal-settings drafts before navigating to another module.
 
 ## Upstream overview
 <div align="center">
@@ -42,7 +114,7 @@ Mycelium is a native desktop application built on Tauri and React. It replaces t
 ## Philosophy
 
 ### 1. Everything is local
-All data lives in a single SQLite database at `~/Documents/O-neash-data/oneash-DB.db`. Nothing leaves your machine. You own the file, you own the schema, you own the history. If you want to query your own task data in a terminal, you can — it's just SQL.
+Personal records live in a local SQLite database. Development builds use `Documents/O-neash-data-dev/oneash-DB.db`; release builds use `Documents/O-neash-data/oneash-DB.db`. Images are separate files under the same environment directory, and appearance/layout preferences use WebView localStorage. Weather, news, research feeds, geocoding and user-requested Notion imports make external requests. There is no automatic Notion or Obsidian synchronization.
 
 ### 2. Structure before speed
 Most productivity apps optimize for fast capture and abandon structure. Mycelium inverts this. Work is organized into a three-tier hierarchy:
@@ -54,7 +126,7 @@ Arcs  →  Projects  →  Nodes
 **Arcs** are long-horizon goals — semester plans, research initiatives, career bets. **Projects** are bounded work units under an arc. **Nodes** are individual tasks or events. This hierarchy isn't bureaucracy; it's the map that makes the territory legible. When you know which arc a task belongs to, you know *why* you're doing it.
 
 ### 3. Time is multidimensional
-A task has at least four time coordinates: when you *plan* to work on it (`planned_start_at`), when it's *due* (`due_at`), how long you *think* it takes (`estimated_duration_minutes`), and how long it *actually* took (`actual_duration_minutes`). Most apps collapse these into a single date. Mycelium keeps them separate because the gap between estimated and actual time is where you learn about yourself.
+A task has several time coordinates: when you plan to work on it (`planned_start_at`), when it is due (`due_at`), expected effort (`estimated_duration_minutes`), and completion time (`actual_completed_at`). Recorded effort is accumulated from `session_nodes.total_minutes` across sessions, including incomplete work carried forward. The current task schema has no `actual_duration_minutes` column.
 
 ### 4. Visual weight encodes meaning
 In the planner's dot view, **a node is a circle**. Its size encodes effort. Its color encodes urgency — computed from importance level and deadline proximity, not manually set. The goal is a view where the shape of your workload is immediately visible without reading a word.
@@ -167,7 +239,8 @@ O_neash Dash/
 │   ├── components/ui/         # Shared Radix-based primitives
 │   ├── home/                  # LaunchMenu, HomePage, category definitions
 │   ├── lib/
-│   │   └── db.ts              # SQLite singleton, full schema, migration logic
+│   │   ├── db.ts              # SQLite bridge and native transaction API
+│   │   └── personalSettingsDb.ts # Profile validation/persistence and revisions
 │   ├── plugins/
 │   │   ├── AcademicPlugin/
 │   │   ├── ClockPlugin/
@@ -187,14 +260,16 @@ O_neash Dash/
 ├── src-tauri/
 │   ├── src/
 │   │   ├── main.rs            # Tauri entry point
-│   │   └── lib.rs             # Plugin setup, DB directory creation
+│   │   ├── lib.rs             # Plugin setup and IPC registration
+│   │   ├── database/          # Native initialization, v1–v6 migrations and schema
+│   │   └── data_management/   # Backup, staged restore, browsing and exports
 │   ├── Cargo.toml             # Rust dependencies
 │   └── tauri.conf.json        # App config (window, permissions, SQL)
 ```
 
 ### Database
 
-The entire application state lives in one SQLite file. The schema is applied at startup via a `CREATE TABLE IF NOT EXISTS` migration block in `src/lib/db.ts` — no migration tooling required, columns are added with `ALTER TABLE` guards.
+Domain records and personal settings share one SQLite file per environment. The Rust database module runs versioned migrations before the frontend obtains the shared pool. The current fresh schema has 51 tables including the migration ledger and 46 declared foreign keys; media files and WebView appearance/layout settings have separate storage. See the [schema inventory](docs/architecture/schema-inventory.md) for exact columns and constraints.
 
 Key tables:
 
@@ -216,6 +291,8 @@ Key tables:
 | `academic_canvas_edges` | Dependency arrows on canvas |
 | `work_sessions / productivity_logs` | On The Clock focus sessions |
 | `journal_entries` | Daily log records |
+| `personal_settings / personal_settings_history` | Current personal profile/preferences and atomic revision snapshots |
+| `import_sources / import_records / import_runs` | Source identities, imported-note baselines and import history |
 
 ### State Management
 
@@ -228,6 +305,7 @@ Global stores:
 
 - `usePluginStore` — which plugin is currently active
 - `useWidgetStore` — home widget configuration
+- `usePersonalSettingsStore` — validated profile/preferences, readiness and serialized saves
 
 ### Frontend Stack
 
@@ -251,12 +329,13 @@ Global stores:
 
 The Rust layer is intentionally thin. It handles:
 
-- **Window management** — fullscreen, single-window
+- **Window management** — resizable single window with native title bar
 - **SQLite** — via `tauri-plugin-sql`, configured to load the database at a user-specific path
-- **File system** — creating the `~/Documents/O-neash-data/` directory on first launch
+- **File system** — separate native-selected development/release data directories
+- **Schema and transactions** — versioned migrations, shared SQLite pool and atomic write batches
 - **PDF export** — macOS-only: uses `objc2-app-kit` and `objc2-web-kit` to print a `WKWebView` to PDF
 
-The frontend does all business logic. The Rust layer has no awareness of schema or data shape.
+The frontend owns scheduling, editing and analytics logic. Rust owns storage initialization, schema upgrades and related-write transactions.
 
 ### Plugin Structure
 
@@ -292,7 +371,7 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
-The app runs fullscreen. The SQLite database is created automatically at first launch in `~/Documents/O-neash-data/oneash-DB.db`.
+The app opens in a resizable 1100 × 720 window (minimum 800 × 600). The database is created automatically: development uses `Documents/O-neash-data-dev/oneash-DB.db`; packaged release uses `Documents/O-neash-data/oneash-DB.db`. No SQLite server is needed.
 
 ---
 

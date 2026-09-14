@@ -1,0 +1,5362 @@
+{
+  "schemaVersion": 6,
+  "provenance": "Source-only fresh-install schema; no personal database opened",
+  "tables": [
+    {
+      "name": "academic_canvas_edges",
+      "sql": "CREATE TABLE academic_canvas_edges (\r\n    canvas_id    TEXT NOT NULL,\r\n    from_node_id TEXT NOT NULL,\r\n    to_node_id   TEXT NOT NULL,\r\n    PRIMARY KEY (canvas_id, from_node_id, to_node_id),\r\n    FOREIGN KEY (canvas_id)    REFERENCES academic_canvases(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (from_node_id) REFERENCES nodes(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (to_node_id)   REFERENCES nodes(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "canvas_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "from_node_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "to_node_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 3
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "nodes",
+          "from": "to_node_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "nodes",
+          "from": "from_node_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 2,
+          "seq": 0,
+          "table": "academic_canvases",
+          "from": "canvas_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_ace_canvas",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "canvas_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ace_canvas ON academic_canvas_edges(canvas_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_academic_canvas_edges_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "canvas_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "from_node_id"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "to_node_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "academic_canvas_nodes",
+      "sql": "CREATE TABLE academic_canvas_nodes (\r\n    canvas_id   TEXT NOT NULL,\r\n    node_id     TEXT NOT NULL,\r\n    day         TEXT NOT NULL,\r\n    x_slot      INTEGER DEFAULT 0,\r\n    is_deadline INTEGER DEFAULT 0,\r\n    PRIMARY KEY (canvas_id, node_id),\r\n    FOREIGN KEY (canvas_id) REFERENCES academic_canvases(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (node_id)   REFERENCES nodes(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "canvas_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "node_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "day",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "x_slot",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "is_deadline",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "nodes",
+          "from": "node_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "academic_canvases",
+          "from": "canvas_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_acn_canvas",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "canvas_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_acn_canvas ON academic_canvas_nodes(canvas_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_academic_canvas_nodes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "canvas_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "node_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "academic_canvases",
+      "sql": "CREATE TABLE academic_canvases (\r\n    id         TEXT PRIMARY KEY,\r\n    project_id TEXT NOT NULL,\r\n    name       TEXT NOT NULL,\r\n    created_at TEXT DEFAULT (datetime('now'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "project_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_ac_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ac_project ON academic_canvases(project_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_academic_canvases_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "academic_subjects",
+      "sql": "CREATE TABLE academic_subjects (\r\n    project_id TEXT PRIMARY KEY,\r\n    sort_order INTEGER DEFAULT 0,\r\n    created_at TEXT DEFAULT (datetime('now'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "project_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "sort_order",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_academic_subjects_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "project_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "arcs",
+      "sql": "CREATE TABLE arcs (\r\n    id          TEXT PRIMARY KEY,\r\n    name        TEXT NOT NULL,\r\n    color_hex   TEXT DEFAULT '#00c4a7',\r\n    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  , description TEXT DEFAULT '', status TEXT NOT NULL DEFAULT 'active')",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "color_hex",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "'#00c4a7'",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "description",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "status",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'active'",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_arcs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "dispatch_locations",
+      "sql": "CREATE TABLE dispatch_locations (\r\n    id          TEXT PRIMARY KEY,\r\n    name        TEXT NOT NULL,\r\n    color       TEXT NOT NULL DEFAULT '#666666',\r\n    created_at  TEXT DEFAULT (datetime('now'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "color",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'#666666'",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_dispatch_locations_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "dispatch_node_placements",
+      "sql": "CREATE TABLE dispatch_node_placements (\r\n    id                TEXT PRIMARY KEY,\r\n    work_block_id     TEXT NOT NULL,\r\n    node_id           TEXT NOT NULL,\r\n    start_offset      INTEGER NOT NULL DEFAULT 0,\r\n    duration_override INTEGER,\r\n    created_at        TEXT DEFAULT (datetime('now')),\r\n    updated_at        TEXT DEFAULT (datetime('now')),\r\n    FOREIGN KEY(work_block_id) REFERENCES dispatch_work_blocks(id) ON DELETE CASCADE,\r\n    FOREIGN KEY(node_id)       REFERENCES nodes(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "work_block_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "node_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "start_offset",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "duration_override",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "updated_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "nodes",
+          "from": "node_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "dispatch_work_blocks",
+          "from": "work_block_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_dispatch_np_node",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "node_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_dispatch_np_node  ON dispatch_node_placements(node_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_dispatch_np_block",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "work_block_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_dispatch_np_block ON dispatch_node_placements(work_block_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_dispatch_node_placements_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "dispatch_work_blocks",
+      "sql": "CREATE TABLE dispatch_work_blocks (\r\n    id          TEXT PRIMARY KEY,\r\n    date        TEXT NOT NULL,\r\n    start_time  INTEGER NOT NULL,\r\n    end_time    INTEGER NOT NULL,\r\n    location_id TEXT,\r\n    created_at  TEXT DEFAULT (datetime('now')),\r\n    updated_at  TEXT DEFAULT (datetime('now')),\r\n    FOREIGN KEY(location_id) REFERENCES dispatch_locations(id) ON DELETE SET NULL\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "date",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "start_time",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "end_time",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "location_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "updated_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "dispatch_locations",
+          "from": "location_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_dispatch_wb_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_dispatch_wb_date ON dispatch_work_blocks(date)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_dispatch_work_blocks_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "doc_comments",
+      "sql": "CREATE TABLE doc_comments (\r\n    id          TEXT PRIMARY KEY,\r\n    doc_id      TEXT NOT NULL,\r\n    mark_id     TEXT NOT NULL,\r\n    body        TEXT NOT NULL,\r\n    resolved    INTEGER DEFAULT 0,\r\n    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    FOREIGN KEY(doc_id) REFERENCES notes(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "doc_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "mark_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "body",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "resolved",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "notes",
+          "from": "doc_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_comments_doc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "doc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_comments_doc ON doc_comments(doc_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_doc_comments_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "filmneg_cameras",
+      "sql": "CREATE TABLE filmneg_cameras (\r\n    id          TEXT PRIMARY KEY,\r\n    name        TEXT NOT NULL,\r\n    type        TEXT NOT NULL DEFAULT 'digital'\r\n                    CHECK(type IN('digital','film')),\r\n    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'digital'",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_filmneg_cameras_type",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "type"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_cameras_type ON filmneg_cameras(type)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_filmneg_cameras_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "filmneg_photo_tags",
+      "sql": "CREATE TABLE filmneg_photo_tags (\r\n    photo_id  TEXT NOT NULL,\r\n    tag_id    TEXT NOT NULL,\r\n    PRIMARY KEY (photo_id, tag_id),\r\n    FOREIGN KEY (photo_id) REFERENCES filmneg_photos(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (tag_id)   REFERENCES filmneg_tags(id)   ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "photo_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "tag_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "filmneg_tags",
+          "from": "tag_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "filmneg_photos",
+          "from": "photo_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_filmneg_pt_tag",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "tag_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_pt_tag   ON filmneg_photo_tags(tag_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_filmneg_pt_photo",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "photo_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_pt_photo ON filmneg_photo_tags(photo_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_filmneg_photo_tags_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "photo_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "tag_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "filmneg_photos",
+      "sql": "CREATE TABLE filmneg_photos (\r\n    id            TEXT PRIMARY KEY,\r\n    title         TEXT,\r\n    image_path    TEXT NOT NULL,\r\n    notes         TEXT,\r\n    taken_at      TEXT,\r\n    camera        TEXT,\r\n    film_stock    TEXT,\r\n    lat           REAL,\r\n    lng           REAL,\r\n    location_name TEXT,\r\n    is_favorite   BOOLEAN NOT NULL DEFAULT 0,\r\n    rating        INTEGER,\r\n    width         INTEGER,\r\n    height        INTEGER,\r\n    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  , camera_id TEXT)",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "image_path",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "notes",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "taken_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "camera",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "film_stock",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "lat",
+          "type": "REAL",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "lng",
+          "type": "REAL",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "location_name",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "is_favorite",
+          "type": "BOOLEAN",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 11,
+          "name": "rating",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 12,
+          "name": "width",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 13,
+          "name": "height",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 14,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 15,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 16,
+          "name": "camera_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_filmneg_photos_camera",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 16,
+              "name": "camera_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_photos_camera ON filmneg_photos(camera_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_filmneg_photos_geo",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 7,
+              "name": "lat"
+            },
+            {
+              "seqno": 1,
+              "cid": 8,
+              "name": "lng"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_photos_geo      ON filmneg_photos(lat, lng)"
+        },
+        {
+          "seq": 2,
+          "name": "idx_filmneg_photos_favorite",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 10,
+              "name": "is_favorite"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_photos_favorite ON filmneg_photos(is_favorite)"
+        },
+        {
+          "seq": 3,
+          "name": "idx_filmneg_photos_taken",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 4,
+              "name": "taken_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_photos_taken    ON filmneg_photos(taken_at)"
+        },
+        {
+          "seq": 4,
+          "name": "sqlite_autoindex_filmneg_photos_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "filmneg_tags",
+      "sql": "CREATE TABLE filmneg_tags (\r\n    id          TEXT PRIMARY KEY,\r\n    name        TEXT NOT NULL UNIQUE,\r\n    color       TEXT NOT NULL DEFAULT '#64c8ff',\r\n    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "color",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'#64c8ff'",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_filmneg_tags_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "name"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_filmneg_tags_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "filmneg_trail_photos",
+      "sql": "CREATE TABLE filmneg_trail_photos (\r\n    trail_id    TEXT NOT NULL,\r\n    photo_id    TEXT NOT NULL,\r\n    sort_order  INTEGER NOT NULL DEFAULT 0,\r\n    PRIMARY KEY (trail_id, photo_id),\r\n    FOREIGN KEY (trail_id) REFERENCES filmneg_trails(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (photo_id) REFERENCES filmneg_photos(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "trail_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "photo_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "sort_order",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "filmneg_photos",
+          "from": "photo_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "filmneg_trails",
+          "from": "trail_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_filmneg_tp_photo",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "photo_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_tp_photo ON filmneg_trail_photos(photo_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_filmneg_tp_trail",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "trail_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "sort_order"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_tp_trail ON filmneg_trail_photos(trail_id, sort_order)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_filmneg_trail_photos_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "trail_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "photo_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "filmneg_trails",
+      "sql": "CREATE TABLE filmneg_trails (\r\n    id          TEXT PRIMARY KEY,\r\n    name        TEXT NOT NULL,\r\n    description TEXT,\r\n    color       TEXT NOT NULL DEFAULT '#e8a94f',\r\n    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "description",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "color",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'#e8a94f'",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_filmneg_trails_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "habit_logs",
+      "sql": "CREATE TABLE habit_logs (\r\n    id         TEXT PRIMARY KEY,\r\n    habit_id   TEXT NOT NULL,\r\n    date       TEXT NOT NULL,\r\n    created_at TEXT DEFAULT (datetime('now')), value REAL,\r\n    UNIQUE(habit_id, date),\r\n    FOREIGN KEY(habit_id) REFERENCES habits(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "habit_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "date",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "value",
+          "type": "REAL",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "habits",
+          "from": "habit_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_habit_logs_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_habit_logs_date  ON habit_logs(date)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_habit_logs_habit",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "habit_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_habit_logs_habit ON habit_logs(habit_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_habit_logs_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "habit_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "date"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 3,
+          "name": "sqlite_autoindex_habit_logs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "habits",
+      "sql": "CREATE TABLE habits (\r\n    id             TEXT PRIMARY KEY,\r\n    name           TEXT NOT NULL,\r\n    color          TEXT NOT NULL DEFAULT '#4a8c6e',\r\n    type           TEXT NOT NULL DEFAULT 'daily'\r\n                       CHECK(type IN('daily','weekly','times_per_week')),\r\n    times_per_week INTEGER,\r\n    sort_order     INTEGER NOT NULL DEFAULT 0,\r\n    created_at     TEXT DEFAULT (datetime('now')),\r\n    archived_at    TEXT\r\n  , value_type TEXT NOT NULL DEFAULT 'boolean', goal_type TEXT NOT NULL DEFAULT 'none', goal_value INTEGER, source TEXT NOT NULL DEFAULT 'manual')",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "color",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'#4a8c6e'",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'daily'",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "times_per_week",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "sort_order",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "archived_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "value_type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'boolean'",
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "goal_type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'none'",
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "goal_value",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 11,
+          "name": "source",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'manual'",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_habits_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "import_records",
+      "sql": "CREATE TABLE import_records (\n  source_id    TEXT NOT NULL REFERENCES import_sources(id) ON DELETE RESTRICT,\n  external_id  TEXT NOT NULL,\n  note_id      TEXT REFERENCES notes(id) ON DELETE SET NULL,\n  content_hash TEXT NOT NULL,\n  source_updated_at TEXT,\n  imported_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY(source_id, external_id)\n)",
+      "source": "src-tauri/src/database/schema/data.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "source_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "external_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "note_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "content_hash",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "source_updated_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "imported_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "notes",
+          "from": "note_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "import_sources",
+          "from": "source_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "RESTRICT",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_import_records_note",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "note_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_import_records_note ON import_records(note_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_import_records_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "source_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "external_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "import_runs",
+      "sql": "CREATE TABLE import_runs (\n  id            TEXT PRIMARY KEY NOT NULL,\n  source_id     TEXT NOT NULL REFERENCES import_sources(id) ON DELETE RESTRICT,\n  started_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  completed_at  TEXT,\n  created_count INTEGER NOT NULL DEFAULT 0 CHECK(created_count >= 0),\n  updated_count INTEGER NOT NULL DEFAULT 0 CHECK(updated_count >= 0),\n  skipped_count INTEGER NOT NULL DEFAULT 0 CHECK(skipped_count >= 0),\n  status        TEXT NOT NULL DEFAULT 'running'\n)",
+      "source": "src-tauri/src/database/schema/data.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "source_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "started_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "completed_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "created_count",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "updated_count",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "skipped_count",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "status",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'running'",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "import_sources",
+          "from": "source_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "RESTRICT",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_import_runs_source_started",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "source_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "started_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_import_runs_source_started ON import_runs(source_id, started_at DESC)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_import_runs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "import_sources",
+      "sql": "CREATE TABLE import_sources (\n  id         TEXT PRIMARY KEY NOT NULL,\n  kind       TEXT NOT NULL,\n  source_id  TEXT NOT NULL,\n  label      TEXT NOT NULL DEFAULT '',\n  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  UNIQUE(kind, source_id)\n)",
+      "source": "src-tauri/src/database/schema/data.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "kind",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "source_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "label",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_import_sources_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "kind"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "source_id"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_import_sources_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "journal_entries",
+      "sql": "CREATE TABLE journal_entries (\r\n    id          TEXT PRIMARY KEY,\r\n    date        TEXT NOT NULL UNIQUE,\r\n    content     TEXT NOT NULL DEFAULT '',\r\n    images      TEXT NOT NULL DEFAULT '[]',\r\n    created_at  TEXT DEFAULT (datetime('now')),\r\n    updated_at  TEXT DEFAULT (datetime('now'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "date",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "content",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "images",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'[]'",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "updated_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_journal_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_journal_date ON journal_entries(date)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_journal_entries_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_journal_entries_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "mycelium_schema_migrations",
+      "sql": "CREATE TABLE mycelium_schema_migrations (\n                   version INTEGER PRIMARY KEY,\n                   applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP\n                 )",
+      "source": "src-tauri/src/database/migrations.rs",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "version",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "applied_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": []
+    },
+    {
+      "name": "node_groups",
+      "sql": "CREATE TABLE node_groups (\r\n    node_id   TEXT NOT NULL,\r\n    group_id  TEXT NOT NULL,\r\n    PRIMARY KEY(node_id, group_id),\r\n    FOREIGN KEY(node_id)  REFERENCES nodes(id)           ON DELETE CASCADE,\r\n    FOREIGN KEY(group_id) REFERENCES planner_groups(id)  ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "node_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "group_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "planner_groups",
+          "from": "group_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "nodes",
+          "from": "node_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_ng_group",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ng_group ON node_groups(group_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_ng_node",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "node_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ng_node  ON node_groups(node_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_node_groups_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "node_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "nodes",
+      "sql": "CREATE TABLE nodes (\r\n    id                          TEXT PRIMARY KEY,\r\n    project_id                  TEXT,\r\n    arc_id                      TEXT,\r\n    title                       TEXT NOT NULL,\r\n    node_type                   TEXT NOT NULL DEFAULT 'task'\r\n                                    CHECK(node_type IN('task','event')),\r\n    planned_start_at            DATETIME,\r\n    due_at                      DATETIME,\r\n    actual_completed_at         DATETIME,\r\n    estimated_duration_minutes  INTEGER,\r\n    importance_level            INTEGER NOT NULL DEFAULT 0\r\n                                    CHECK(importance_level BETWEEN 0 AND 4),\r\n    computed_urgency_level      INTEGER NOT NULL DEFAULT 0\r\n                                    CHECK(computed_urgency_level BETWEEN 0 AND 4),\r\n    is_completed                BOOLEAN DEFAULT 0,\r\n    is_locked                   BOOLEAN DEFAULT 0,\r\n    is_overdue                  BOOLEAN DEFAULT 0,\r\n    is_pinned                   BOOLEAN DEFAULT 0,\r\n    created_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    is_routine                  INTEGER DEFAULT 0,\r\n    routine_id                  TEXT,\r\n    FOREIGN KEY(project_id)     REFERENCES projects(id)  ON DELETE SET NULL,\r\n    FOREIGN KEY(arc_id)         REFERENCES arcs(id)      ON DELETE SET NULL,\r\n    FOREIGN KEY(routine_id)     REFERENCES routines(id)  ON DELETE SET NULL\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "project_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "arc_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "node_type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'task'",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "planned_start_at",
+          "type": "DATETIME",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "due_at",
+          "type": "DATETIME",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "actual_completed_at",
+          "type": "DATETIME",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "estimated_duration_minutes",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "importance_level",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "computed_urgency_level",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 11,
+          "name": "is_completed",
+          "type": "BOOLEAN",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 12,
+          "name": "is_locked",
+          "type": "BOOLEAN",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 13,
+          "name": "is_overdue",
+          "type": "BOOLEAN",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 14,
+          "name": "is_pinned",
+          "type": "BOOLEAN",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 15,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 16,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 17,
+          "name": "is_routine",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 18,
+          "name": "routine_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "routines",
+          "from": "routine_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "arcs",
+          "from": "arc_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 2,
+          "seq": 0,
+          "table": "projects",
+          "from": "project_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_nodes_is_routine",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 17,
+              "name": "is_routine"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_is_routine ON nodes(is_routine)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_nodes_routine_id",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 18,
+              "name": "routine_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_routine_id ON nodes(routine_id)"
+        },
+        {
+          "seq": 2,
+          "name": "idx_nodes_overdue",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 13,
+              "name": "is_overdue"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_overdue   ON nodes(is_overdue)"
+        },
+        {
+          "seq": 3,
+          "name": "idx_nodes_completed",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 11,
+              "name": "is_completed"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_completed ON nodes(is_completed)"
+        },
+        {
+          "seq": 4,
+          "name": "idx_nodes_planned",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 5,
+              "name": "planned_start_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_planned   ON nodes(planned_start_at)"
+        },
+        {
+          "seq": 5,
+          "name": "idx_nodes_due",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 6,
+              "name": "due_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_due       ON nodes(due_at)"
+        },
+        {
+          "seq": 6,
+          "name": "idx_nodes_arc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "arc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_arc       ON nodes(arc_id)"
+        },
+        {
+          "seq": 7,
+          "name": "idx_nodes_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_project   ON nodes(project_id)"
+        },
+        {
+          "seq": 8,
+          "name": "sqlite_autoindex_nodes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "note_groups",
+      "sql": "CREATE TABLE note_groups (\r\n    note_id   TEXT NOT NULL,\r\n    group_id  TEXT NOT NULL,\r\n    PRIMARY KEY(note_id, group_id),\r\n    FOREIGN KEY(note_id)  REFERENCES notes(id)          ON DELETE CASCADE,\r\n    FOREIGN KEY(group_id) REFERENCES planner_groups(id)  ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "note_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "group_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "planner_groups",
+          "from": "group_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "notes",
+          "from": "note_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_note_groups_group",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_note_groups_group ON note_groups(group_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_ng_note",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "note_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ng_note       ON note_groups(note_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_note_groups_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "note_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "note_links",
+      "sql": "CREATE TABLE note_links (\r\n    source_id TEXT NOT NULL,\r\n    target_id TEXT NOT NULL,\r\n    PRIMARY KEY (source_id, target_id),\r\n    FOREIGN KEY (source_id) REFERENCES notes(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (target_id) REFERENCES notes(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "source_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "target_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "notes",
+          "from": "target_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "notes",
+          "from": "source_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_links_target",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "target_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_links_target ON note_links(target_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_note_links_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "source_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "target_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "note_title_aliases",
+      "sql": "CREATE TABLE note_title_aliases (\n                   target_id TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,\n                   title TEXT NOT NULL,\n                   PRIMARY KEY(target_id, title)\n                 )",
+      "source": "src-tauri/src/database/migrations.rs",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "target_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "notes",
+          "from": "target_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_note_title_aliases_title",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "title"
+            }
+          ],
+          "sql": "CREATE INDEX idx_note_title_aliases_title ON note_title_aliases(title)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_note_title_aliases_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "target_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "title"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "notes",
+      "sql": "CREATE TABLE notes (\r\n    id            TEXT PRIMARY KEY,\r\n    note_type     TEXT NOT NULL DEFAULT 'memo'\r\n                      CHECK(note_type IN('memo','document')),\r\n    title         TEXT,\r\n    content_plain TEXT,\r\n    content_json  TEXT,\r\n    status        TEXT NOT NULL DEFAULT 'active'\r\n                      CHECK(status IN('active','archived')),\r\n    arc_id        TEXT,\r\n    project_id    TEXT,\r\n    pinned        BOOLEAN NOT NULL DEFAULT 0,\r\n    color_hex     TEXT,\r\n    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    FOREIGN KEY(arc_id)     REFERENCES arcs(id)     ON DELETE SET NULL,\r\n    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "note_type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'memo'",
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "content_plain",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "content_json",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "status",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'active'",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "arc_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "project_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "pinned",
+          "type": "BOOLEAN",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "color_hex",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 11,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "projects",
+          "from": "project_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "arcs",
+          "from": "arc_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_notes_status_order",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 5,
+              "name": "status"
+            },
+            {
+              "seqno": 1,
+              "cid": 8,
+              "name": "pinned"
+            },
+            {
+              "seqno": 2,
+              "cid": 11,
+              "name": "updated_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_status_order\n  ON notes(status, pinned DESC, updated_at DESC)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_notes_type_status_order",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "note_type"
+            },
+            {
+              "seqno": 1,
+              "cid": 5,
+              "name": "status"
+            },
+            {
+              "seqno": 2,
+              "cid": 8,
+              "name": "pinned"
+            },
+            {
+              "seqno": 3,
+              "cid": 11,
+              "name": "updated_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_type_status_order\n  ON notes(note_type, status, pinned DESC, updated_at DESC)"
+        },
+        {
+          "seq": 2,
+          "name": "idx_notes_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 7,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_project ON notes(project_id)"
+        },
+        {
+          "seq": 3,
+          "name": "idx_notes_arc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 6,
+              "name": "arc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_arc     ON notes(arc_id)"
+        },
+        {
+          "seq": 4,
+          "name": "idx_notes_status",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "note_type"
+            },
+            {
+              "seqno": 1,
+              "cid": 5,
+              "name": "status"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_status  ON notes(note_type, status)"
+        },
+        {
+          "seq": 5,
+          "name": "idx_notes_type",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "note_type"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_type    ON notes(note_type)"
+        },
+        {
+          "seq": 6,
+          "name": "sqlite_autoindex_notes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "personal_settings",
+      "sql": "CREATE TABLE personal_settings (\n  id TEXT PRIMARY KEY CHECK (id = 'current'),\n  revision INTEGER NOT NULL CHECK (revision > 0),\n  schema_version INTEGER NOT NULL CHECK (schema_version > 0),\n  settings_json TEXT NOT NULL CHECK (json_valid(settings_json)),\n  saved_at TEXT NOT NULL\n)",
+      "source": "src-tauri/src/database/schema/settings.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "schema_version",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "settings_json",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "saved_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_personal_settings_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "personal_settings_history",
+      "sql": "CREATE TABLE personal_settings_history (\n  revision INTEGER PRIMARY KEY CHECK (revision > 0),\n  schema_version INTEGER NOT NULL CHECK (schema_version > 0),\n  settings_json TEXT NOT NULL CHECK (json_valid(settings_json)),\n  saved_at TEXT NOT NULL\n)",
+      "source": "src-tauri/src/database/schema/settings.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "revision",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "schema_version",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "settings_json",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "saved_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": []
+    },
+    {
+      "name": "planner_groups",
+      "sql": "CREATE TABLE planner_groups (\r\n    id             TEXT PRIMARY KEY,\r\n    name           TEXT NOT NULL,\r\n    color_hex      TEXT DEFAULT '#64c8ff',\r\n    sort_order     INTEGER DEFAULT 0,\r\n    is_ungrouped   BOOLEAN DEFAULT 0,\r\n    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "color_hex",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "'#64c8ff'",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "sort_order",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "is_ungrouped",
+          "type": "BOOLEAN",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_planner_groups_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "productivity_logs",
+      "sql": "CREATE TABLE productivity_logs (\r\n    id              TEXT PRIMARY KEY,\r\n    node_id         TEXT,\r\n    completed_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    duration_actual INTEGER,\r\n    FOREIGN KEY(node_id) REFERENCES nodes(id) ON DELETE SET NULL\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "node_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "completed_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "duration_actual",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "nodes",
+          "from": "node_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_productivity_logs_node",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "node_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_productivity_logs_node ON productivity_logs(node_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_productivity_logs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "projects",
+      "sql": "CREATE TABLE projects (\r\n    id          TEXT PRIMARY KEY,\r\n    arc_id      TEXT,\r\n    name        TEXT NOT NULL,\r\n    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP, description TEXT DEFAULT '', status TEXT NOT NULL DEFAULT 'active', start_date TEXT, end_date TEXT,\r\n    FOREIGN KEY(arc_id) REFERENCES arcs(id) ON DELETE SET NULL\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "arc_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "description",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "status",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'active'",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "start_date",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "end_date",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "arcs",
+          "from": "arc_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_projects_arc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "arc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_projects_arc    ON projects(arc_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_projects_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "routine_groups",
+      "sql": "CREATE TABLE routine_groups (\r\n    routine_id  TEXT NOT NULL,\r\n    group_id    TEXT NOT NULL,\r\n    PRIMARY KEY (routine_id, group_id),\r\n    FOREIGN KEY (routine_id) REFERENCES routines(id)         ON DELETE CASCADE,\r\n    FOREIGN KEY (group_id)   REFERENCES planner_groups(id)   ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "routine_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "group_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "planner_groups",
+          "from": "group_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "routines",
+          "from": "routine_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_rg_group",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_rg_group   ON routine_groups(group_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_rg_routine",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "routine_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_rg_routine ON routine_groups(routine_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_routine_groups_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "routine_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "routine_rules",
+      "sql": "CREATE TABLE routine_rules (\r\n    id               TEXT PRIMARY KEY,\r\n    routine_id       TEXT NOT NULL,\r\n    sort_order       INTEGER DEFAULT 0,\r\n    freq             TEXT NOT NULL DEFAULT 'weekly'\r\n                         CHECK(freq IN('daily','weekly','monthly','manual')),\r\n    repeat_interval  INTEGER NOT NULL DEFAULT 1,\r\n    days             TEXT,\r\n    start_date       TEXT NOT NULL,\r\n    end_mode         TEXT NOT NULL DEFAULT 'count'\r\n                         CHECK(end_mode IN('count','date')),\r\n    end_count        INTEGER,\r\n    end_date         TEXT,\r\n    start_time       TEXT,\r\n    duration_minutes INTEGER,\r\n    exceptions       TEXT,\r\n    FOREIGN KEY(routine_id) REFERENCES routines(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "routine_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "sort_order",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "freq",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'weekly'",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "repeat_interval",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "1",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "days",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "start_date",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "end_mode",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'count'",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "end_count",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "end_date",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 10,
+          "name": "start_time",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 11,
+          "name": "duration_minutes",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 12,
+          "name": "exceptions",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "routines",
+          "from": "routine_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_routine_rules_routine",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "routine_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_routine_rules_routine ON routine_rules(routine_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_routine_rules_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "routines",
+      "sql": "CREATE TABLE routines (\r\n    id               TEXT PRIMARY KEY,\r\n    title            TEXT NOT NULL,\r\n    node_type        TEXT NOT NULL DEFAULT 'task'\r\n                         CHECK(node_type IN('task','event')),\r\n    arc_id           TEXT,\r\n    project_id       TEXT,\r\n    importance_level INTEGER NOT NULL DEFAULT 0,\r\n    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    FOREIGN KEY(arc_id)     REFERENCES arcs(id)     ON DELETE SET NULL,\r\n    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "node_type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'task'",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "arc_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "project_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "importance_level",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "projects",
+          "from": "project_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "arcs",
+          "from": "arc_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_routines_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 4,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_routines_project ON routines(project_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_routines_arc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 3,
+              "name": "arc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_routines_arc     ON routines(arc_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_routines_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "session_nodes",
+      "sql": "CREATE TABLE session_nodes (\r\n    session_id    TEXT    NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,\r\n    node_id       TEXT    NOT NULL,\r\n    sort_order    INTEGER NOT NULL DEFAULT 0,\r\n    status        TEXT    NOT NULL DEFAULT 'queued'\r\n                  CHECK(status IN('queued','in_progress','done','incomplete')),\r\n    time_started  TEXT,\r\n    time_finished TEXT,\r\n    total_minutes REAL,\r\n    PRIMARY KEY (session_id, node_id)\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "session_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "node_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "sort_order",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "status",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'queued'",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "time_started",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "time_finished",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "total_minutes",
+          "type": "REAL",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "work_sessions",
+          "from": "session_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_session_nodes_effort",
+          "unique": 0,
+          "origin": "c",
+          "partial": 1,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "node_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 6,
+              "name": "total_minutes"
+            }
+          ],
+          "sql": "CREATE INDEX idx_session_nodes_effort\n  ON session_nodes(node_id, total_minutes) WHERE total_minutes > 0"
+        },
+        {
+          "seq": 1,
+          "name": "idx_sn_session",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "session_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_sn_session  ON session_nodes(session_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_session_nodes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "session_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "node_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "session_pauses",
+      "sql": "CREATE TABLE session_pauses (\r\n    id          TEXT PRIMARY KEY,\r\n    session_id  TEXT NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,\r\n    paused_at   TEXT NOT NULL,\r\n    resumed_at  TEXT,\r\n    pause_type  TEXT NOT NULL DEFAULT 'manual'\r\n                CHECK(pause_type IN('manual','pomo_short','pomo_long'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "session_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "paused_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "resumed_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "pause_type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'manual'",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "work_sessions",
+          "from": "session_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_sp_session",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "session_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_sp_session  ON session_pauses(session_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_session_pauses_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "session_pomo_blocks",
+      "sql": "CREATE TABLE session_pomo_blocks (\r\n    id          TEXT PRIMARY KEY,\r\n    session_id  TEXT NOT NULL REFERENCES work_sessions(id) ON DELETE CASCADE,\r\n    started_at  TEXT NOT NULL,\r\n    ended_at    TEXT,\r\n    block_type  TEXT NOT NULL\r\n                CHECK(block_type IN('work','short_break','long_break'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "session_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "started_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "ended_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "block_type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "work_sessions",
+          "from": "session_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_spb_session",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "session_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_spb_session ON session_pomo_blocks(session_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_session_pomo_blocks_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "sleep_entries",
+      "sql": "CREATE TABLE sleep_entries (\r\n    id          INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    date        TEXT NOT NULL,\r\n    sleep_start TEXT NOT NULL,\r\n    wake_time   TEXT NOT NULL,\r\n    is_nap      INTEGER DEFAULT 0,\r\n    notes       TEXT,\r\n    created_at  TEXT DEFAULT (datetime('now'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "date",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "sleep_start",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "wake_time",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "is_nap",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "notes",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_sleep_entries_start",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "sleep_start"
+            }
+          ],
+          "sql": "CREATE INDEX idx_sleep_entries_start ON sleep_entries(sleep_start)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_sleep_entries_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_sleep_entries_date  ON sleep_entries(date)"
+        }
+      ]
+    },
+    {
+      "name": "sleep_targets",
+      "sql": "CREATE TABLE sleep_targets (\r\n    id                 INTEGER PRIMARY KEY AUTOINCREMENT,\r\n    target_sleep_start TEXT NOT NULL,\r\n    target_duration    REAL NOT NULL,\r\n    set_at             TEXT DEFAULT (datetime('now'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "target_sleep_start",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "target_duration",
+          "type": "REAL",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "set_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": []
+    },
+    {
+      "name": "sub_tasks",
+      "sql": "CREATE TABLE sub_tasks (\r\n    id           TEXT PRIMARY KEY,\r\n    node_id      TEXT NOT NULL,\r\n    title        TEXT NOT NULL,\r\n    is_completed BOOLEAN DEFAULT 0,\r\n    sort_order   INTEGER DEFAULT 0,\r\n    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    FOREIGN KEY(node_id) REFERENCES nodes(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "node_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "is_completed",
+          "type": "BOOLEAN",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "sort_order",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "nodes",
+          "from": "node_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_subtasks_node",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "node_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_subtasks_node ON sub_tasks(node_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_sub_tasks_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "tendril_edges",
+      "sql": "CREATE TABLE tendril_edges (\r\n    id          TEXT PRIMARY KEY,\r\n    project_id  TEXT NOT NULL,\r\n    source_id   TEXT NOT NULL,\r\n    target_id   TEXT NOT NULL,\r\n    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    FOREIGN KEY(source_id) REFERENCES nodes(id) ON DELETE CASCADE,\r\n    FOREIGN KEY(target_id) REFERENCES nodes(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "project_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "source_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "target_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "nodes",
+          "from": "target_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "nodes",
+          "from": "source_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_te_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_te_project ON tendril_edges(project_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_tendril_edges_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "user_capacity",
+      "sql": "CREATE TABLE user_capacity (\r\n    id            TEXT PRIMARY KEY DEFAULT 'default',\r\n    daily_minutes INTEGER DEFAULT 480,\r\n    peak_start    TEXT DEFAULT '09:00',\r\n    peak_end      TEXT DEFAULT '12:00',\r\n    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
+      "source": "src-tauri/src/database/schema/planner.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "'default'",
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "daily_minutes",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "480",
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "peak_start",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "'09:00'",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "peak_end",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "'12:00'",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_user_capacity_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "wardrobe_items",
+      "sql": "CREATE TABLE wardrobe_items (\r\n    id             TEXT PRIMARY KEY,\r\n    name           TEXT NOT NULL,\r\n    item_type      TEXT NOT NULL,\r\n    brand          TEXT,\r\n    purchase_date  TEXT,\r\n    image_path     TEXT,\r\n    sizing_json    TEXT,\r\n    status         TEXT NOT NULL DEFAULT 'active',\r\n    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "item_type",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "brand",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "purchase_date",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "image_path",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "sizing_json",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "status",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'active'",
+          "pk": 0
+        },
+        {
+          "cid": 8,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 9,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_items_status",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 7,
+              "name": "status"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_items_status ON wardrobe_items(status)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_wardrobe_items_type",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "item_type"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_items_type   ON wardrobe_items(item_type)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_wardrobe_items_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "wardrobe_ootd_logs",
+      "sql": "CREATE TABLE wardrobe_ootd_logs (\r\n    id          TEXT PRIMARY KEY,\r\n    date        TEXT NOT NULL UNIQUE,\r\n    item_ids    TEXT NOT NULL DEFAULT '[]',\r\n    note        TEXT,\r\n    photo_path  TEXT,\r\n    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "date",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "item_ids",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'[]'",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "note",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "photo_path",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_ootd_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_ootd_date ON wardrobe_ootd_logs(date)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_wardrobe_ootd_logs_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_wardrobe_ootd_logs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "wardrobe_wiki_entries",
+      "sql": "CREATE TABLE wardrobe_wiki_entries (\r\n    id            TEXT PRIMARY KEY,\r\n    category      TEXT NOT NULL,\r\n    title         TEXT NOT NULL,\r\n    content_plain TEXT,\r\n    content_json  TEXT,\r\n    cover_image   TEXT,\r\n    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "category",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "content_plain",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "content_json",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "cover_image",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "updated_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_wiki_category",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "category"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_wiki_category ON wardrobe_wiki_entries(category)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_wardrobe_wiki_entries_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "wardrobe_wiki_gallery_images",
+      "sql": "CREATE TABLE wardrobe_wiki_gallery_images (\r\n    id          TEXT PRIMARY KEY,\r\n    entry_id    TEXT NOT NULL,\r\n    image_path  TEXT NOT NULL,\r\n    note        TEXT,\r\n    sort_order  INTEGER DEFAULT 0,\r\n    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\r\n    FOREIGN KEY (entry_id) REFERENCES wardrobe_wiki_entries(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "entry_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "image_path",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "note",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "sort_order",
+          "type": "INTEGER",
+          "notnull": 0,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "created_at",
+          "type": "TIMESTAMP",
+          "notnull": 0,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "wardrobe_wiki_entries",
+          "from": "entry_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_gallery_entry",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "entry_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_gallery_entry ON wardrobe_wiki_gallery_images(entry_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_wardrobe_wiki_gallery_images_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "wardrobe_wiki_links",
+      "sql": "CREATE TABLE wardrobe_wiki_links (\r\n    source_id TEXT NOT NULL,\r\n    target_id TEXT NOT NULL,\r\n    PRIMARY KEY (source_id, target_id),\r\n    FOREIGN KEY (source_id) REFERENCES wardrobe_wiki_entries(id) ON DELETE CASCADE,\r\n    FOREIGN KEY (target_id) REFERENCES wardrobe_wiki_entries(id) ON DELETE CASCADE\r\n  )",
+      "source": "src-tauri/src/database/schema/collections.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "source_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "target_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "wardrobe_wiki_entries",
+          "from": "target_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "wardrobe_wiki_entries",
+          "from": "source_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "CASCADE",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_wiki_links_target",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "target_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_wiki_links_target ON wardrobe_wiki_links(target_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_wardrobe_wiki_links_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "source_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "target_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "work_locations",
+      "sql": "CREATE TABLE work_locations (\r\n    id         TEXT PRIMARY KEY,\r\n    name       TEXT NOT NULL UNIQUE,\r\n    created_at TEXT DEFAULT (datetime('now'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "name",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_work_locations_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "name"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_work_locations_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "work_sessions",
+      "sql": "CREATE TABLE work_sessions (\r\n    id           TEXT PRIMARY KEY,\r\n    title        TEXT NOT NULL,\r\n    location_id  TEXT REFERENCES work_locations(id) ON DELETE SET NULL,\r\n    planned_date TEXT NOT NULL,\r\n    actual_start TEXT,\r\n    actual_end   TEXT,\r\n    status       TEXT NOT NULL DEFAULT 'planned'\r\n                 CHECK(status IN('planned','active','paused','completed','interrupted')),\r\n    created_at   TEXT DEFAULT (datetime('now'))\r\n  )",
+      "source": "src-tauri/src/database/schema/personal.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "title",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "location_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "planned_date",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "actual_start",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "actual_end",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "status",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'planned'",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": "datetime('now')",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "work_locations",
+          "from": "location_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_ws_date_created",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 3,
+              "name": "planned_date"
+            },
+            {
+              "seqno": 1,
+              "cid": 7,
+              "name": "created_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ws_date_created\n  ON work_sessions(planned_date DESC, created_at DESC)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_ws_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 3,
+              "name": "planned_date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ws_date     ON work_sessions(planned_date)"
+        },
+        {
+          "seq": 2,
+          "name": "idx_ws_status",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 6,
+              "name": "status"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ws_status   ON work_sessions(status)"
+        },
+        {
+          "seq": 3,
+          "name": "sqlite_autoindex_work_sessions_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    }
+  ],
+  "logicalJoins": [
+    [
+      "personal_settings",
+      "revision",
+      "personal_settings_history",
+      "revision"
+    ],
+    [
+      "tendril_edges",
+      "project_id",
+      "projects",
+      "id"
+    ],
+    [
+      "session_nodes",
+      "node_id",
+      "nodes",
+      "id"
+    ],
+    [
+      "academic_subjects",
+      "project_id",
+      "projects",
+      "id"
+    ],
+    [
+      "academic_canvases",
+      "project_id",
+      "projects",
+      "id"
+    ],
+    [
+      "wardrobe_ootd_logs",
+      "item_ids JSON[]",
+      "wardrobe_items",
+      "id"
+    ],
+    [
+      "filmneg_photos",
+      "camera_id",
+      "filmneg_cameras",
+      "id"
+    ]
+  ]
+}

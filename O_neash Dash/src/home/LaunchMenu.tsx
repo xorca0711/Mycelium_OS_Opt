@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
+import { usePersonalSettingsStore } from '../store/usePersonalSettingsStore';
+import { filterAppCategories, pluginEnabled } from '../lib/personalFeaturePolicy';
 import usePluginStore from "../store/usePluginStore";
 import { useFloatingEditorStore } from "../store/useFloatingEditorStore";
 import {
@@ -277,30 +279,35 @@ export const CATEGORIES: Category[] = [
 
 export function LaunchMenu() {
   const setActivePlugin = usePluginStore((s) => s.setActivePlugin);
-  const floatingOpen = useFloatingEditorStore((s) => s.docs.some(d => d.state === 'open'));
+  const hasFloatingEditor = useFloatingEditorStore((s) => s.docs.some(d => d.state === 'open'));
   const [activeCat, setActiveCat] = useState(0);
   const [activeApp, setActiveApp] = useState(0);
 
-  const apps = CATEGORIES[activeCat].apps;
+  const { settings, loaded, error } = usePersonalSettingsStore();
+  const floatingOpen = hasFloatingEditor && pluginEnabled('notes', settings.disabledPluginIds, loaded && !error);
+  const categories = useMemo(() => filterAppCategories(CATEGORIES, settings.disabledPluginIds, loaded && !error), [settings.disabledPluginIds, loaded, error]);
+  const category = categories[Math.min(activeCat, categories.length - 1)];
+  const apps = category?.apps ?? [];
+  useEffect(() => { setActiveCat(0); setActiveApp(0); }, [categories]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (floatingOpen) return;
       if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof Element &&
+        e.target.closest('button, a, input, textarea, select, [contenteditable="true"], [role="button"]')
       )
         return;
 
       // 1–4: switch category
       const catIdx = parseInt(e.key) - 1;
-      if (!isNaN(catIdx) && catIdx >= 0 && catIdx < CATEGORIES.length) {
+      if (!isNaN(catIdx) && catIdx >= 0 && catIdx < categories.length) {
         setActiveCat(catIdx);
         setActiveApp(0);
         return;
       }
 
-      const currentApps = CATEGORIES[activeCat].apps;
+      const currentApps = apps;
 
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -310,7 +317,7 @@ export function LaunchMenu() {
         setActiveApp((i) => Math.max(i - 1, 0));
       } else if (e.key === "ArrowRight") {
         setActiveCat((c) => {
-          const n = Math.min(c + 1, CATEGORIES.length - 1);
+          const n = Math.min(c + 1, categories.length - 1);
           setActiveApp(0);
           return n;
         });
@@ -327,7 +334,7 @@ export function LaunchMenu() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeCat, activeApp, setActivePlugin, floatingOpen]);
+  }, [activeCat, activeApp, setActivePlugin, floatingOpen, categories, apps]);
 
   return (
     <div style={{ fontFamily: "var(--font-main), var(--font-kr), monospace", width: "100%" }}>
@@ -344,12 +351,13 @@ export function LaunchMenu() {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "2.4rem",
+          gap: "var(--launcher-category-gap, 2.4rem)",
+          flexWrap: "wrap",
           paddingBottom: "0.6rem",
           borderBottom: "1px solid rgba(255,255,255,0.07)",
         }}
       >
-        {CATEGORIES.map((cat, i) => {
+        {categories.map((cat, i) => {
           const active = activeCat === i;
           return (
             <button
@@ -395,7 +403,7 @@ export function LaunchMenu() {
               )}
               <span
                 style={{
-                  fontSize: active ? "2.4rem" : "1.5rem",
+                  fontSize: active ? "var(--launcher-active-size, 2.4rem)" : "var(--launcher-inactive-size, 1.5rem)",
                   color: active ? "#fff" : "rgba(255,255,255,0.28)",
                   textTransform: active ? "uppercase" : "lowercase",
                   letterSpacing: active ? "3px" : "1.5px",
@@ -441,7 +449,7 @@ export function LaunchMenu() {
                   width: 12,
                   flexShrink: 0,
                   fontSize: "1.1rem",
-                  color: sel ? CATEGORIES[activeCat].accent : "transparent",
+                  color: sel ? category.accent : "transparent",
                 }}
               >
                 {">"}
@@ -476,7 +484,7 @@ export function LaunchMenu() {
                     display: "flex",
                     alignItems: "center",
                     flexShrink: 0,
-                    color: sel ? "rgba(0,0,0,0.7)" : `${CATEGORIES[activeCat].accent}88`,
+                    color: sel ? "rgba(0,0,0,0.7)" : `${category.accent}88`,
                     transition: "color 0.1s",
                   }}
                 >
@@ -487,7 +495,7 @@ export function LaunchMenu() {
                   style={{
                     fontSize: "1.2rem",
                     letterSpacing: "1px",
-                    minWidth: 190,
+                    minWidth: "var(--launcher-name-width, 190px)",
                     textAlign: "left",
                     color: sel ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.55)",
                     transition: "color 0.1s",

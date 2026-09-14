@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
-import { getEntries } from "../../../SleepTrackerPlugin/lib/sleepDb";
+import { loadAnalyticsSleep } from './sleepWindowData';
+import { analyticsRange } from './sleepWindows';
 import { loadIrfTaskData } from "../../../PlannerPlugin/lib/plannerDb";
 import { computeIrf, buildIrfInsights } from "./impulseResponseMath";
 import type { IrfResult } from "./impulseResponseMath";
@@ -237,10 +238,11 @@ export default function ImpulseResponsePanel({ onInsights }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getEntries(90), loadIrfTaskData(90)])
+    const now = new Date();
+    Promise.all([loadAnalyticsSleep(analyticsRange(90, now)), loadIrfTaskData(90, now)])
       .then(([sleep, tasks]) => {
         if (cancelled) return;
-        const r = computeIrf(sleep, tasks);
+        const r = computeIrf(sleep, tasks, now);
         if (!r) { setNoData(true); return; }
         setResult(r);
         onInsights(buildIrfInsights(r));

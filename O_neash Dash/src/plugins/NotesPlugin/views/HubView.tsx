@@ -356,8 +356,8 @@ interface HubViewProps {
 export default function HubView({ onOpenDoc, onOpenMemo, onGoToDocs }: HubViewProps) {
   const { memos, documents, loadMemos, loadDocuments, createMemo, createDocument } = useNotesStore();
   const { arcs, projects, loadAll } = usePlannerStore();
-  const [recentDocs,      setRecentDocs]      = useState<NoteRow[]>([]);
-  const [allNotes,        setAllNotes]        = useState<NoteRow[]>([]);
+  const allNotes = useMemo(() => [...memos, ...documents], [memos, documents]);
+  const recentDocs = useMemo(() => [...documents].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 8), [documents]);
   const [input,           setInput]           = useState('');
   const [showNewDocModal, setShowNewDocModal] = useState(false);
 
@@ -369,18 +369,6 @@ export default function HubView({ onOpenDoc, onOpenMemo, onGoToDocs }: HubViewPr
   const squishCtrl = useAnimationControls();
 
   useEffect(() => { loadMemos(); loadDocuments(); loadAll(); }, []);
-
-  useEffect(() => {
-    (async () => {
-      const all = await loadNotes();
-      setAllNotes(all);
-      const docs = all
-        .filter(n => n.note_type === 'document')
-        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-        .slice(0, 8);
-      setRecentDocs(docs);
-    })();
-  }, [documents, memos]);
 
   const allDocs    = allNotes.filter(n => n.note_type === 'document');
   const totalWords = allNotes.reduce((s, n) => s + countWords(n), 0);

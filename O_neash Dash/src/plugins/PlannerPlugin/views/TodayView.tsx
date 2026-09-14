@@ -8,6 +8,7 @@ import React, {
 import { createPortal } from "react-dom";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ComposedChart, Bar } from "recharts";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { toast } from "@/components/ui/sonner";
 import {
   motion,
   AnimatePresence,
@@ -58,10 +59,14 @@ import { loadSessionsForWeek, loadArcBreakdown } from "../lib/onTheClockDb";
 import type { SessionNodeWithNode, ArcBreakdown } from "../lib/onTheClockDb";
 import DotNode from "../components/DotNode";
 import type { PlannerNode, Arc, Project } from "../types";
+import { usePersonalSettingsStore } from '../../../store/usePersonalSettingsStore';
+import { reservedPlanningMinutes, remainingCapacity, suggestionPreferenceBonus, weekdayOrder } from '../lib/planningPreferences';
+import { PlanningPreferencesSummary } from '../components/PlanningPreferencesSummary';
 
 const SUGGESTION_LIMIT = 3;
 
 export default function TodayView() {
+  const personalSettings = usePersonalSettingsStore(s => s.settings);
   const {
     nodes,
     arcs: allArcs,
@@ -87,8 +92,8 @@ export default function TodayView() {
   const sessionRemoveNode  = useSessionStore((s) => s.removeNode);
   const sessionAddNodes    = useSessionStore((s) => s.addNodes);
   const activeSessionNodeIds = useMemo(
-    () => new Set(activeSessionNodes.map((n) => n.node_id)),
-    [activeSessionNodes],
+    () => new Set(activeSession ? activeSessionNodes.map((n) => n.node_id) : []),
+    [activeSession, activeSessionNodes],
   );
   const [now, setNow] = useState(() => new Date());
   const [overdueCollapsed, setOverdueCollapsed] = useState(false);
@@ -152,6 +157,9 @@ export default function TodayView() {
     [nodes, now],
   );
 
+  const reservedMinutes = reservedPlanningMinutes(nodes, todayDone, activeSessionNodeIds, personalSettings, now);
+  const availableMinutes = remainingCapacity(personalSettings, now, reservedMinutes);
+
   const suggestions = useMemo(() => {
     const candidates = nodes.filter(
       (n) =>
@@ -160,15 +168,18 @@ export default function TodayView() {
         !n.is_completed &&
         !n.is_overdue &&
         !n.is_missed_schedule &&
+        !activeSessionNodeIds.has(n.id) &&
         !isSameDay(n.planned_start_at, now) &&
         !isSameDay(n.due_at, now),
     );
     return candidates
-      .map((n) => ({ node: n, score: scoreSuggestion(n, now) }))
+      .map((n) => ({ node: n, bonus: suggestionPreferenceBonus(n.estimated_duration_minutes, personalSettings, now, availableMinutes) }))
+      .filter((entry): entry is { node: PlannerNode; bonus: number } => entry.bonus !== null)
+      .map(({ node, bonus }) => ({ node, score: scoreSuggestion(node, now) + bonus }))
       .sort((a, b) => b.score - a.score)
       .slice(0, SUGGESTION_LIMIT)
       .map((s) => s.node);
-  }, [nodes, now]);
+  }, [nodes, now, personalSettings, availableMinutes, activeSessionNodeIds]);
 
   const cardProps = (node: PlannerNode) => ({
     node,
@@ -219,6 +230,7 @@ export default function TodayView() {
               gap: "2.25rem",
             }}
           >
+            <PlanningPreferencesSummary settings={personalSettings} now={now} remaining={availableMinutes} />
             {/* IN SESSION */}
             {activeSession && (() => {
               const visibleSessionNodes = activeSessionNodes.filter((sn) => {
@@ -297,7 +309,7 @@ export default function TodayView() {
                           node={fullNode}
                           onStartNode={() => sessionStartNode(sn.node_id)}
                           onReturnQueue={() => sessionReturnQueue(sn.node_id)}
-                          onFinish={() => { sessionFinishNode(sn.node_id); if (fullNode) completeNode(fullNode.id); loadAll(); }}
+                          onFinish={() => { void sessionFinishNode(sn.node_id).catch(error => toast.error('Could not finish this task', { description: String(error) })); }}
                           onEdit={() => fullNode && openTaskFormEdit(fullNode)}
                           onRemove={() => sessionRemoveNode(sn.node_id)}
                         />
@@ -2659,6 +2671,7 @@ function heatColor(count: number): string {
 }
 
 function MiniCalendarPanel() {
+  const weekStartsOn = usePersonalSettingsStore(s => s.settings.weekStartsOn);
   const { nodes } = usePlannerStore();
   const today = new Date();
   const [viewDate, setViewDate] = useState(
@@ -2687,7 +2700,7 @@ function MiniCalendarPanel() {
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
-  const firstDow = new Date(year, month, 1).getDay();
+  const firstDow = (new Date(year, month, 1).getDay() - weekStartsOn + 7) % 7;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
@@ -2810,7 +2823,7 @@ function MiniCalendarPanel() {
           paddingRight: "6px",
         }}
       >
-        {WEEKDAY_LABELS.map((d) => (
+        {weekdayOrder(weekStartsOn).map(i => WEEKDAY_LABELS[i]).map((d) => (
           <div
             key={d}
             style={{

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { usePersonalSettingsStore } from '../../store/usePersonalSettingsStore';
+import { pluginEnabled } from '../../lib/personalFeaturePolicy';
 import QuickAddInput from "../../plugins/PlannerPlugin/components/QuickAddInput";
 import { usePlannerStore } from "../../plugins/PlannerPlugin/store/usePlannerStore";
 import { useHabitsStore } from "../../plugins/HabitsPlugin/store/useHabitsStore";
@@ -223,8 +225,7 @@ function SleepBar({ onChange }: SleepBarProps) {
 
 // ── Tab bar ────────────────────────────────────────────────────────────────────
 
-function TabBar({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
-  const tabs: Tab[] = ["task", "habits", "sleep"];
+function TabBar({ active, onChange, tabs }: { active: Tab | undefined; onChange: (t: Tab) => void; tabs: Tab[] }) {
   return (
     <div style={{ display: "flex", gap: 0, borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: 14 }}>
       {tabs.map((t) => (
@@ -576,9 +577,10 @@ function SleepSection() {
 
 // ── Bloom panel ───────────────────────────────────────────────────────────────
 
-function BloomPanel({ onClose }: { onClose: () => void }) {
+function BloomPanel({ onClose, tabs }: { onClose: () => void; tabs: Tab[] }) {
   const [activeTab, setActiveTab] = useState<Tab>("task");
   const panelRef = useRef<HTMLDivElement>(null);
+  const visibleTab = tabs.includes(activeTab) ? activeTab : tabs[0];
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -604,10 +606,10 @@ function BloomPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div ref={panelRef} className="bloom-panel">
-      <TabBar active={activeTab} onChange={setActiveTab} />
-      {activeTab === "task" && <TaskSection />}
-      {activeTab === "habits" && <HabitsSection />}
-      {activeTab === "sleep" && <SleepSection />}
+      <TabBar active={visibleTab} onChange={setActiveTab} tabs={tabs} />
+      {visibleTab === "task" && <TaskSection />}
+      {visibleTab === "habits" && <HabitsSection />}
+      {visibleTab === "sleep" && <SleepSection />}
     </div>
   );
 }
@@ -616,10 +618,14 @@ function BloomPanel({ onClose }: { onClose: () => void }) {
 
 function SingleBloomNav() {
   const [open, setOpen] = useState(false);
+  const { settings, loaded, error } = usePersonalSettingsStore();
+  const modules: Record<Tab, string> = { task: 'planner', habits: 'habits', sleep: 'sleep-tracker' };
+  const tabs = (Object.keys(modules) as Tab[]).filter(tab => pluginEnabled(modules[tab], settings.disabledPluginIds, loaded && !error));
+  if (!tabs.length) return null;
 
   return (
     <div className="single-bloom-container">
-      {open && <BloomPanel onClose={() => setOpen(false)} />}
+      {open && <BloomPanel onClose={() => setOpen(false)} tabs={tabs} />}
       <button
         className={`bloom-center${open ? " expanded" : ""}`}
         onClick={() => setOpen((v) => !v)}

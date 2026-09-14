@@ -1,10 +1,10 @@
 import { writeFile, mkdir, exists } from '@tauri-apps/plugin-fs';
-import { documentDir, join } from '@tauri-apps/api/path';
+import { join } from '@tauri-apps/api/path';
+import { dataSubdirectory } from '@/lib/dataLocation';
 import { convertFileSrc } from '@tauri-apps/api/core';
 
 async function imagesDir(): Promise<string> {
-  const docs = await documentDir();
-  return join(docs, 'O-neash-data', 'journal-images');
+  return dataSubdirectory('journal-images');
 }
 
 export async function saveJournalImage(blob: Blob, ext: string): Promise<string> {
