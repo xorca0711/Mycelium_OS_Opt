@@ -13,10 +13,23 @@ import { useNotesStore } from "./plugins/NotesPlugin/store/useNotesStore";
 import { createCloseGuard } from "./plugins/NotesPlugin/lib/closeGuard";
 import { usePersonalSettingsStore } from "./store/usePersonalSettingsStore";
 import usePluginStore from "./store/usePluginStore";
+import { useDataMaintenanceStore } from './store/useDataMaintenanceStore';
+import { getRestoreStatus, applyRestoredPreferences, acknowledgeRestore } from './lib/dataManagement';
 
 initFontSettings();
 
 function AppContent() {
+  const maintenance = useDataMaintenanceStore();
+  useEffect(() => {
+    const blockShortcuts = (event: KeyboardEvent) => {
+      const state = useDataMaintenanceStore.getState();
+      if (!state.busy && !state.restartRequired) return;
+      if (state.busy) event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    window.addEventListener('keydown', blockShortcuts, true);
+    return () => window.removeEventListener('keydown', blockShortcuts, true);
+  }, []);
   useEffect(() => {
     if (!isTauri()) return;
     let disposed = false;
@@ -33,7 +46,10 @@ function AppContent() {
       onError: reportError,
       isDisposed: () => disposed,
     });
-    void appWindow.onCloseRequested(guard).then(stop => {
+    void appWindow.onCloseRequested(event => {
+      if (useDataMaintenanceStore.getState().busy) { event.preventDefault(); return; }
+      return guard(event);
+    }).then(stop => {
       if (disposed) stop();
       else unlisten = stop;
     }).catch(error => { if (!disposed) toast.error("Could not enable save-before-close.", { description: String(error) }); });
@@ -41,12 +57,19 @@ function AppContent() {
   }, []);
 
   return (
-    <main className="main-container relative" data-tauri-drag-region>
+    <><main className="main-container relative" data-tauri-drag-region inert={maintenance.busy || maintenance.restartRequired}>
       <AlwaysOnTop />
       <PluginBox />
       <Toaster />
       <FloatingEditor />
     </main>
+    {(maintenance.busy || maintenance.restartRequired) && <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/75 p-6" role="dialog" aria-modal="true" aria-label="Data maintenance">
+      <div className="max-w-md rounded-lg border border-white/20 bg-zinc-950 p-6 text-white" aria-live="polite">
+        <h2 className="text-lg font-semibold">{maintenance.restartRequired ? 'Restart to apply your backup' : maintenance.label}</h2>
+        <p className="mt-3 text-sm text-zinc-300">{maintenance.restartRequired ? 'Close Mycelium and reopen it. Your current workspace will be preserved in a rollback folder while the selected backup is restored.' : 'Saving pending notes and completing the data operation. Please keep this window open.'}</p>
+        {maintenance.restartRequired && <button className="mt-4 rounded border px-4 py-2" onClick={() => { void getCurrentWindow().destroy(); }}>Close Mycelium</button>}
+      </div>
+    </div>}</>
   );
 }
 
@@ -65,6 +88,16 @@ function App() {
     const initApp = async () => {
       try {
         await setupDb();
+        if (isTauri()) {
+          const restore = await getRestoreStatus();
+          if (restore.appliedPreferences) {
+            applyRestoredPreferences(restore.appliedPreferences);
+            await acknowledgeRestore();
+            window.location.reload();
+            return;
+          }
+          if (restore.pending) useDataMaintenanceStore.setState({ restartRequired: true });
+        }
         try {
           await usePersonalSettingsStore.getState().load();
           if (usePersonalSettingsStore.getState().error) usePluginStore.getState().setActivePlugin('settings');
@@ -76,7 +109,7 @@ function App() {
         console.log("Database and Directory Handshake Complete.");
       } catch (err) {
         console.error("Initialization failed:", err);
-        setError("Could not initialize the database.");
+        setError(`Could not initialize the database: ${String(err)}`);
       }
     };
     initApp();

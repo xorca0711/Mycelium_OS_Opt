@@ -11,11 +11,14 @@ const out = path.resolve(app, '../docs/architecture');
 fs.mkdirSync(out, { recursive: true });
 const read = p => fs.readFileSync(path.join(app, p), 'utf8');
 const remote = 'https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/';
-const url = p => remote + p.split('/').map(encodeURIComponent).join('/');
+const url = p => {
+  if (!p || !fs.existsSync(path.join(app, p))) throw new Error(`Missing linked source: ${p}`);
+  return remote + p.split('/').map(encodeURIComponent).join('/');
+};
 const esc = x => String(x).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 const database = new DatabaseSync(':memory:');
 const sourceByTable = new Map();
-for (const file of ['planner', 'personal', 'collections', 'settings']) {
+for (const file of ['planner', 'personal', 'collections', 'settings', 'data']) {
   const source = `src-tauri/src/database/schema/${file}.sql`;
   const sql = read(source);
   database.exec(sql);
@@ -35,11 +38,17 @@ for (const m of migrations.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)\s*\([\s\S]
   database.exec(m[0]);
   sourceByTable.set(m[1], migrationSource);
 }
+for (const m of migrations.matchAll(/CREATE INDEX IF NOT EXISTS \w+ ON [^;]+;/g)) database.exec(m[0]);
 const version = Number(migrations.match(/CURRENT_VERSION: i64 = (\d+)/)[1]);
 const tables = database.prepare("SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(t => ({
   name: t.name, sql: t.sql, source: sourceByTable.get(t.name),
   columns: database.prepare(`PRAGMA table_info(${t.name})`).all(),
   foreignKeys: database.prepare(`PRAGMA foreign_key_list(${t.name})`).all(),
+  indexes: database.prepare(`PRAGMA index_list(${t.name})`).all().map(index => ({
+    ...index,
+    columns: database.prepare(`PRAGMA index_info(${index.name})`).all(),
+    sql: database.prepare('SELECT sql FROM sqlite_master WHERE name = ?').get(index.name)?.sql ?? null,
+  })),
 }));
 const byName = new Map(tables.map(t => [t.name, t]));
 const logical = [
@@ -55,7 +64,7 @@ const pages = [];
 const palette = { normal: ['#dae8fc', '#6c8ebf'], external: ['#f5f5f5', '#8b949e'], native: ['#d5e8d4', '#82b366'], storage: ['#fff2cc', '#d6b656'], logical: ['#e1d5e7', '#9673a6'] };
 function addPage(id, name, nodes, edges, subtitle) {
   const g = new dagre.graphlib.Graph({ multigraph: true });
-  g.setGraph({ rankdir: id === '01-runtime' ? 'TB' : 'LR', nodesep: 50, ranksep: 110, marginx: 35, marginy: 40 });
+  g.setGraph({ rankdir: ['01-runtime', '15-import-flow', '16-backup-restore'].includes(id) ? 'TB' : 'LR', nodesep: 50, ranksep: 110, marginx: 35, marginy: 40 });
   g.setDefaultEdgeLabel(() => ({}));
   for (const n of nodes) g.setNode(n.id, { width: 350, height: Math.max(110, 64 + n.lines.length * 23) });
   edges.forEach((e, i) => g.setEdge(e.from, e.to, { width: e.label.length * 7.4, height: 22 }, String(i)));
@@ -102,7 +111,7 @@ addPage('01-runtime', 'Runtime / script architecture', [
   ['shell', 'Persistent shell', ['AlwaysOnTop + FloatingEditor', 'Home: visible feeds and quick actions', 'Hidden WidgetPanel is unmounted'], 'src/always-visible/AOT-elements.tsx'],
   ['state', 'Zustand / UI state', ['Plugin, planner, session, notes views', 'Mutations then scoped refresh/events'], 'src/store/usePluginStore.ts'],
   ['helpers', 'Domain DB helpers', ['plannerDb / onTheClockDb / notesDb', 'Other plugins issue their own queries'], 'src/lib/db.ts'],
-  ['init', 'Native initialize_database', ['Resolve dev/release directory', 'Migrate before publishing shared pool'], 'src-tauri/src/database/mod.rs', 'native'],
+  ['init', 'Native initialize_database', ['Environment lock; apply pending restore', 'Migrate before publishing shared pool'], 'src-tauri/src/database/mod.rs', 'native'],
   ['batch', 'Native execute_batch', ['Related writes on one transaction', 'Commit all or roll back'], 'src-tauri/src/database/mod.rs', 'native'],
   ['sql', 'Tauri plugin-sql', ['Database.get(databaseUrl)', 'Reads + remaining single writes'], 'src/lib/db.ts', 'native'],
   ['db', 'Shared SQLite pool / file', ['oneash-DB.db', 'FK-enabled connections; 10s busy timeout', 'All domains join by IDs or timestamps'], 'src-tauri/src/database/mod.rs', 'storage'],
@@ -115,7 +124,7 @@ addPage('01-runtime', 'Runtime / script architecture', [
 addPage('02-storage', 'Storage boundaries / personal inputs', [
   ['sqlfile', 'Primary SQLite data', ['Debug: Documents/O-neash-data-dev/', 'Release: Documents/O-neash-data/', 'Records + profile + preference history', 'Avatar raster data is stored in profile JSON'], 'src-tauri/src/database/mod.rs', 'storage'],
   ['media', 'Media files beside SQLite', ['notes-images/ and journal-images/', 'wardrobe-images/ and filmneg-images/', 'DB stores paths / JSON references'], 'src/lib/dataLocation.ts', 'storage'],
-  ['local', 'WebView localStorage', ['Fonts; arc visibility; widget layout', 'Weather location; daily quote cache', 'Separate from SQLite backup'], 'src/lib/fontSettings.ts', 'storage'],
+  ['local', 'WebView localStorage', ['Fonts; arc visibility; widget layout', 'Weather location; daily quote cache', 'Allowlisted keys join backup manifest'], 'src/lib/localPreferences.ts', 'storage'],
   ['mem', 'Session memory', ['Zustand state / note catalog', 'Feed cache: 15m TTL, deduped fetches', '60s retry cooldown; stale fallback'], 'src/widgets/lib/feedCache.ts', 'logical'],
   ['network', 'External sources', ['HN / BBC / Yonhap / Nature / Cell', 'Weather and quote APIs', 'HTTP reads, distinct from personal DB'], 'src/widgets/widgets/ResearchFeed.tsx', 'external'],
   ['views', 'Personal workspace views', ['Planner, notes, sleep, habits, journal', 'Academic, wardrobe, film, analytics', 'User-entered records and media'], 'src/plugins/registry.ts', 'normal'],
@@ -145,6 +154,34 @@ addPage('12-analytics', 'Personal analytics / logical joins', [
 ].map(([from,to,label])=>({from,to,label,kind:'logical'})), 'Dashed arrows are computed joins, not FK constraints. Current days are provisional. IRF retains its estimated-duration formula. No causal claim is implied.');
 
 tablePage('13-preferences', 'Personal profile / preference history', ['personal_settings', 'personal_settings_history'], 'Typed JSON v1; migration v5. Current revision and immutable history are saved in one transaction.');
+
+tablePage('14-import-provenance', 'Import sources / records / completed runs', ['import_sources', 'import_records', 'import_runs'], 'Migration v6. Unique source kind + external source ID; record key: source + external record ID. Deleted note keeps provenance.');
+
+addPage('15-import-flow', 'Explicit import / local conflict checks', [
+  ['notion', 'Selected Notion source', ['Page / database / data source', 'Token in memory; no startup fetch', 'Read-only remote API; bounded preview'], 'src/lib/imports/notionClient.ts', 'external'],
+  ['file', 'Selected CSV / JSON', ['Local file up to 10 MiB', 'Stable source label + ID/title/text fields', 'At most 500 records per batch'], 'src/lib/imports/files.ts', 'external'],
+  ['preview', 'Build preview', ['Text + properties into note text', 'Relations remain IDs, not joined tables', 'Hash / external-ID classification'], 'src/lib/imports/model.ts', 'normal'],
+  ['review', 'User reviews actions', ['Create / update / unchanged / conflict', 'Cancel or explicitly import', 'No task mapping or media downloads'], 'src/plugins/SettingsPlugin/sections/DataImportSection.tsx', 'normal'],
+  ['gate', 'Maintenance gate', ['Flush shared note drafts', 'Block overlapping workspace operations'], 'src/store/useDataMaintenanceStore.ts', 'normal'],
+  ['commit', 'Recheck and commit', ['Re-read current notes and hashes', 'Skip local edits / archived / deleted', 'executeBatch: one transaction'], 'src/lib/imports/repository.ts', 'native'],
+  ['db', 'Same SQLite database', ['notes + title aliases', 'import_sources / import_records', 'import_runs: successful batch counts'], 'src-tauri/src/database/schema/data.sql', 'storage'],
+].map(([id,title,lines,file,kind]) => ({id,title,lines,link:url(file),kind})), [
+  ['notion','preview','explicit read'], ['file','preview','parse + map'], ['preview','review','snapshot'],
+  ['review','gate','Import reviewed notes'], ['gate','commit','fresh local check'], ['commit','db','atomic writes'],
+].map(([from,to,label]) => ({from,to,label})), 'One-way import into Notes, not a relational mirror of Notion. Failed transactions leave no partially imported notes or completed run.');
+
+addPage('16-backup-restore', 'Backup / staged restore / restart', [
+  ['ui', 'Settings Data controls', ['Explicit backup / validate / stage', 'Flush notes; maintenance blocks edits'], 'src/plugins/SettingsPlugin/sections/DataBackupRestore.tsx', 'normal'],
+  ['snapshot', 'Create backup', ['Drain shared pool; VACUUM INTO', 'Copy four media folders; reopen pool', 'Capture allowlisted WebView preferences'], 'src-tauri/src/data_management/mod.rs', 'native'],
+  ['folder', 'New backup folder', ['SQLite + media + manifest', 'Schema version, checksums, preferences', 'Separate from active environment'], 'src-tauri/src/data_management/backup.rs', 'storage'],
+  ['validate', 'Validate chosen backup', ['Manifest / paths / checksums', 'SQLite integrity + FK checks', 'Schema compatibility + media refs'], 'src-tauri/src/data_management/backup.rs', 'native'],
+  ['stage', 'Prepare staged copy', ['Copy + validate again; migrate copy', 'Relink managed media paths', 'Write restore-pending control file'], 'src-tauri/src/data_management/restore.rs', 'native'],
+  ['restart', 'Next native startup', ['Lock the data environment', 'Apply pending before opening SQL pool', 'Retain original folder as rollback'], 'src-tauri/src/data_management/restore.rs', 'native'],
+  ['active', 'Restored workspace', ['Database + media become active', 'Apply allowlisted localStorage keys', 'Acknowledge preference handoff'], 'src/App.tsx', 'storage'],
+].map(([id,title,lines,file,kind]) => ({id,title,lines,link:url(file),kind})), [
+  ['ui','snapshot','Create backup'], ['snapshot','folder','snapshot bundle'], ['folder','validate','select + validate'],
+  ['validate','stage','explicit stage'], ['stage','restart','restart required'], ['restart','active','recoverable folder swap'],
+].map(([from,to,label]) => ({from,to,label})), 'Restore operates on a staged copy; original data is retained. External SQLite tools are outside the app maintenance gate.');
 
 // Ensure every current table appears as a primary entity, not merely a cross-domain stub.
 const covered = new Set(pages.flatMap(p => p.nodes.filter(n => n.primary).map(n => n.id)));
@@ -193,9 +230,14 @@ for(const t of tables){
     const keys=[c.pk?`PK(${c.pk})`:'',...t.foreignKeys.filter(f=>f.from===c.name).map(f=>`FK → ${f.table}.${f.to} / DELETE ${f.on_delete}`)].filter(Boolean).join('; ');
     inventory+=`| ${c.name} | ${c.type} | ${keys} | ${c.notnull?'NOT NULL':'—'} | ${String(c.dflt_value??'—').replaceAll('|','\\|')} |\n`;
   }
+  if (t.indexes.length) {
+    inventory += '\n| Index | Columns | Kind | Partial predicate |\n|---|---|---|---|\n';
+    for (const index of t.indexes) inventory += `| ${index.name} | ${index.columns.map(c => c.name ?? '(expression)').join(', ')} | ${index.origin === 'pk' ? 'Primary key' : index.unique ? 'Unique' : 'Secondary'} | ${index.partial ? index.sql?.split(/ WHERE /i)[1] ?? 'See SQL' : '—'} |\n`;
+  }
   inventory+='\n';
 }
 inventory+='## Logical joins (not foreign keys)\n\n| From | To | Enforcement |\n|---|---|---|\n'+logical.map(([t,c,p,k])=>`| ${t}.${c} | ${p}.${k} | Application / JSON convention |`).join('\n')+'\n\nSleep/output analytics joins `sleep_entries.wake_time` to `nodes.actual_completed_at` using bounded local-calendar waking windows; task effort joins `session_nodes.node_id` and sums session minutes. These are not cross-database joins.\n';
+inventory += `\n## Migration 6 query-index evidence\n\n[Source-extracted SQLite tests](${url('tests/dataIndexes.test.mjs')}) compare plans and results against 2,000 synthetic records per main fixture table. These are query-plan observations, not measured application speedups. Existing indexes remain intact.\n\n| Added index | Existing query / observed plan change |\n|---|---|\n| idx_notes_type_status_order | Typed active-note list: removes temporary ORDER BY sort |\n| idx_notes_status_order | All active notes: scan plus sort becomes status index search |\n| idx_ws_date_created | Session history: removes temporary sort of the second ORDER BY term |\n| idx_session_nodes_effort | Positive effort aggregate: covering partial-index scan removes GROUP BY sort |\n| idx_productivity_logs_node | Uncomplete task log deletion: scan becomes node-ID search |\n| idx_note_groups_group | Group deletion FK lookup: note_groups scan becomes group-ID search; fixes the old index-name collision |\n\nEqual timestamps have no explicit ID tie-breaker in current note/session queries; their relative order remains unspecified. Timestamp-expression indexes and foreign-key rebuilds were deferred.\n`;
 fs.writeFileSync(path.join(out,'schema-inventory.md'),inventory);
 const gallery = '# Diagram previews\n\n[Customization map](customization-map.md) · [Personal data sources and local connections](local-data-connections.md)\n\nEditable source: [mycelium-architecture.drawio](mycelium-architecture.drawio). SVG nodes link to source code. Solid ER arrows are declared foreign keys from child to parent with delete actions; dashed arrows are logical application joins. Gray nodes reference another domain.\n\n'+pages.map(p=>`## ${p.name}\n\n[Open SVG](${p.id}.svg)\n\n![${p.name}](${p.id}.svg)\n`).join('\n');
 fs.writeFileSync(path.join(out,'previews.md'),gallery);

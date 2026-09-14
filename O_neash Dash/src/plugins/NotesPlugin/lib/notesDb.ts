@@ -20,6 +20,7 @@ export interface NoteRow {
 const gid = () => Math.random().toString(36).slice(2, 18);
 type Statement = { sql: string; values?: (string | number | boolean | null)[] };
 let catalog: Promise<LinkDocument[]> | undefined;
+export function invalidateDocumentCatalog(): void { catalog = undefined; }
 export function getDocumentCatalog(): Promise<LinkDocument[]> {
   return catalog ??= Promise.all([
     getDb().select<{ id: string; title: string | null }[]>(`SELECT id, title FROM notes WHERE note_type = 'document' AND status = 'active'`),

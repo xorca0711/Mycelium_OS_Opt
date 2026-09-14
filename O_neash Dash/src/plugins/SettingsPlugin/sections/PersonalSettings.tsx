@@ -7,7 +7,7 @@ import { CapacityFields } from './CapacityFields';
 import { ModuleFields } from './ModuleFields';
 import { PersonalData } from './PersonalData';
 
-export function PersonalSettings() {
+export function PersonalSettings({ onDirtyChange }: { onDirtyChange?: (pending: boolean) => void }) {
   const { settings, loaded, error: storeError, load, save } = usePersonalSettingsStore();
   const [draft, setDraft] = useState(settings);
   const [dirty, setDirty] = useState(false);
@@ -21,6 +21,7 @@ export function PersonalSettings() {
 
   useEffect(() => { if (!loaded) void load().catch(() => {}); }, [loaded, load]);
   useEffect(() => { if (!dirty) setDraft(settings); }, [settings, dirty]);
+  useEffect(() => { onDirtyChange?.(dirty || saving || avatarBusy); }, [dirty, saving, avatarBusy, onDirtyChange]);
 
   const update = useCallback((patch: Partial<Settings>) => {
     setDraft(previous => ({ ...previous, ...patch }));

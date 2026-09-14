@@ -4,7 +4,7 @@ use sqlx::{Connection, Row, SqliteConnection};
 
 use super::wardrobe::upgrade_wardrobe;
 
-const CURRENT_VERSION: i64 = 5;
+pub(crate) const CURRENT_VERSION: i64 = 6;
 type ForeignKeyViolation = (String, Option<i64>, String, i64);
 
 async fn foreign_key_violations(
@@ -104,6 +104,11 @@ async fn apply_version(connection: &mut SqliteConnection, version: i64) -> Resul
         5 => {
             // Seed lazily in the application from the existing user's capacity.
             sqlx::raw_sql(include_str!("schema/settings.sql"))
+                .execute(connection).await?;
+        }
+        6 => {
+            // Add provenance and measured query indexes without rewriting existing tables.
+            sqlx::raw_sql(include_str!("schema/data.sql"))
                 .execute(connection).await?;
         }
         _ => return Err(sqlx::Error::Protocol(format!("Unknown migration {version}"))),

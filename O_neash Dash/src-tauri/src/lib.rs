@@ -1,8 +1,13 @@
 mod database;
+mod data_management;
 
 #[cfg(test)]
 #[path = "../tests/database.rs"]
 mod database_tests;
+
+#[cfg(test)]
+#[path = "../tests/data_management.rs"]
+mod data_management_tests;
 
 // ── macOS: native WKWebView PDF export ───────────────────────────────────────
 //
@@ -122,6 +127,15 @@ pub fn run() {
             database::get_data_location,
             database::initialize_database,
             database::execute_batch,
+            data_management::create_backup,
+            data_management::validate_backup,
+            data_management::stage_restore,
+            data_management::get_restore_status,
+            data_management::acknowledge_restore,
+            data_management::cancel_staged_restore,
+            data_management::data_overview,
+            data_management::browse_table,
+            data_management::export_table,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

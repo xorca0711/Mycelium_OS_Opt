@@ -26,7 +26,40 @@ The checked-in pnpm build policy permits only esbuild's required install script.
 
 See the [verified project status](docs/project-status.md), [architecture diagram gallery](docs/architecture/previews.md), [editable draw.io file](docs/architecture/mycelium-architecture.drawio), [customization map](docs/architecture/customization-map.md), and [local database/data-source guide](docs/architecture/local-data-connections.md).
 
-**Stage 6:** Open **Settings → Personal** to edit your name/avatar, home clock timezone, supported regional formats, Planner week start, daily availability, focus/break preferences, modules, feeds and Analytics sources. Save applies preferences and preserves a SQLite revision history. The same screen exposes sleep targets, weather-location clearing, links to goal editors and the local storage path. Import/backup tools and an installer remain later steps.
+**Personal settings:** Open **Settings → Personal** to edit your name/avatar, home clock timezone, supported regional formats, Planner week start, daily availability, focus/break preferences, modules, feeds and Analytics sources. Save applies preferences and preserves a SQLite revision history. The same screen exposes sleep targets, weather-location clearing, links to goal editors and the local storage path.
+
+**Data tools:** Open **Settings → Data** for table browsing, CSV/JSON exports, workspace backup/restore, and explicit Notion or CSV/JSON imports into Notes. See the [connection guide](docs/architecture/local-data-connections.md) and [import flow](docs/architecture/15-import-flow.svg).
+
+## Standalone Windows app
+
+Build the appropriate Windows installer from `O_neash Dash/`:
+
+```powershell
+pnpm tauri build --bundles nsis --target aarch64-pc-windows-msvc
+# Intel/AMD Windows, after rustup target add x86_64-pc-windows-msvc:
+pnpm tauri build --bundles nsis --target x86_64-pc-windows-msvc
+```
+
+Installers appear under `src-tauri/target/<target>/release/bundle/nsis/`: `Mycelium_0.1.0_arm64-setup.exe` for Windows on ARM, or `Mycelium_0.1.0_x64-setup.exe` for Intel/AMD Windows. Use the installer matching the computer. These are separate native builds of the same app, not a universal binary; macOS requires its own build. After installing, open **Mycelium** from the Start menu. The installed app contains its frontend and runs without Node, pnpm, Rust, Vite, Docker or a database server. WebView2 is required; the installer downloads it if missing. See [Tauri's Windows packaging guide](https://v2.tauri.app/distribute/windows-installer/).
+
+Development and installed copies use separate databases. To transfer your existing development records:
+
+1. Rebuild/open the development app and go to **Settings → Data → Create backup folder**. Choose a folder outside the active data directory.
+2. Close the development app, then open the installed app.
+3. Choose **Settings → Data → Choose backup to preview**, select the complete backup folder, review it and apply.
+4. Close/reopen the installed app. Restore validates and transfers the database, managed images and supported appearance/layout preferences. The previous installed workspace is retained in a rollback folder; its path appears in Data status.
+
+Restore replaces the destination workspace; it does not merge two databases. Keep the complete backup folder. Canceled stages and rollback folders are retained for recovery and consume disk space until you remove copies you no longer need.
+
+## Importing Notion and editable personal data
+
+Create a Notion connection with **Read content** capability and grant it access to the specific page/database. A dedicated “For Mycelium” database is optional. In **Settings → Data**, enter the token in the password field, choose Page/Database/Data source, paste its URL or ID and select **Preview import**. Review actions and warnings, then choose **Import reviewed notes**. Tokens stay in memory and are cleared after successful preview or leaving the screen; never put tokens in Git or send them in chat.
+
+Each selected page or database row becomes a local Notes document. Markdown and available property values are copied as editable text. `import_sources`, `import_records` and `import_runs` store source identities, baseline hashes and import history beside the existing `notes` table. Reimports update unchanged local copies; locally edited, archived or deleted notes are preserved. Importing the same page through different selected containers can create separate copies. This is not a whole-workspace export, relational database mirror, automatic task/habit mapping or two-way sync. Relations remain IDs, attachments remain links, and incomplete/unsupported page bodies are skipped with a warning.
+
+Notion runs only when Preview is requested. Requests are sequential, paced at least 550 ms apart, use bounded retries and respect retry delays. Unchanged pages skip body downloads. Normal startup and editing use local SQLite. The first importer previews at most 100 recently edited database rows; use a smaller dedicated database or individual pages for older rows. A page is limited to one million content characters and a batch to five million.
+
+CSV/JSON imports accept up to 500 records and 10 MiB, with an explicit stable source label and ID/title/content mapping. JSON accepts an array of objects or an object containing a `notes` array. Database table exports are read-only; JSON retains values, while CSV escapes formula-leading text. Edit imported content in **Notes** and profile/planning fields in **Settings → Personal**. Raw table editing and automatic Notion-property mapping into Arc → Project → Task are future extensions.
 
 ## Everyday launch on Windows
 
@@ -46,7 +79,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'O_neash Dash/scripts/st
 
 The launcher reuses its server when called again. After closing all Mycelium windows, stop that server with the same command followed by `-StopServer`. A server already started by `pnpm tauri dev` must be stopped in its own terminal before using this launcher.
 
-The debug executable at `O_neash Dash/src-tauri/target/debug/Mycelium.exe` needs Vite on port 1420. Use the launcher for normal reopening. After native Rust/configuration changes, use `pnpm tauri dev` from `O_neash Dash` to rebuild; keep that development terminal open. The quick launcher does not rebuild Rust or install dependencies. A standalone `.exe`/installer without Vite remains stage 7.
+The debug executable at `O_neash Dash/src-tauri/target/debug/Mycelium.exe` needs Vite on port 1420. Use this launcher for development reopening. After native Rust/configuration changes, use `pnpm tauri dev` from `O_neash Dash` to rebuild; keep that development terminal open. The quick launcher does not rebuild Rust or install dependencies. Use the installed Start-menu app for standalone daily use. Only one app instance may use each data environment at a time.
 
 ## Returning Home and basic controls
 
@@ -81,7 +114,7 @@ Mycelium is a native desktop application built on Tauri and React. It replaces t
 ## Philosophy
 
 ### 1. Everything is local
-Personal records live in a local SQLite database. Development builds use `Documents/O-neash-data-dev/oneash-DB.db`; release builds use `Documents/O-neash-data/oneash-DB.db`. Images are separate files under the same environment directory, and appearance/layout preferences use WebView localStorage. Weather, news, research feeds, and geocoding make external requests. There is no built-in Notion or Obsidian synchronization.
+Personal records live in a local SQLite database. Development builds use `Documents/O-neash-data-dev/oneash-DB.db`; release builds use `Documents/O-neash-data/oneash-DB.db`. Images are separate files under the same environment directory, and appearance/layout preferences use WebView localStorage. Weather, news, research feeds, geocoding and user-requested Notion imports make external requests. There is no automatic Notion or Obsidian synchronization.
 
 ### 2. Structure before speed
 Most productivity apps optimize for fast capture and abandon structure. Mycelium inverts this. Work is organized into a three-tier hierarchy:
@@ -228,14 +261,15 @@ O_neash Dash/
 │   ├── src/
 │   │   ├── main.rs            # Tauri entry point
 │   │   ├── lib.rs             # Plugin setup and IPC registration
-│   │   └── database/          # Native initialization, v1–v5 migrations and schema
+│   │   ├── database/          # Native initialization, v1–v6 migrations and schema
+│   │   └── data_management/   # Backup, staged restore, browsing and exports
 │   ├── Cargo.toml             # Rust dependencies
 │   └── tauri.conf.json        # App config (window, permissions, SQL)
 ```
 
 ### Database
 
-Domain records and personal settings share one SQLite file per environment. The Rust database module runs versioned migrations before the frontend obtains the shared pool. The current fresh schema has 48 tables and 43 declared foreign keys; media files and WebView appearance/layout settings have separate storage. See the [schema inventory](docs/architecture/schema-inventory.md) for exact columns and constraints.
+Domain records and personal settings share one SQLite file per environment. The Rust database module runs versioned migrations before the frontend obtains the shared pool. The current fresh schema has 51 application tables and 46 declared foreign keys; media files and WebView appearance/layout settings have separate storage. See the [schema inventory](docs/architecture/schema-inventory.md) for exact columns and constraints.
 
 Key tables:
 
@@ -258,6 +292,7 @@ Key tables:
 | `work_sessions / productivity_logs` | On The Clock focus sessions |
 | `journal_entries` | Daily log records |
 | `personal_settings / personal_settings_history` | Current personal profile/preferences and atomic revision snapshots |
+| `import_sources / import_records / import_runs` | Source identities, imported-note baselines and import history |
 
 ### State Management
 

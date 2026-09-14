@@ -81,3 +81,21 @@ Editable source: [mycelium-architecture.drawio](mycelium-architecture.drawio). S
 [Open SVG](13-preferences.svg)
 
 ![Personal profile / preference history](13-preferences.svg)
+
+## Import sources / records / completed runs
+
+[Open SVG](14-import-provenance.svg)
+
+![Import sources / records / completed runs](14-import-provenance.svg)
+
+## Explicit import / local conflict checks
+
+[Open SVG](15-import-flow.svg)
+
+![Explicit import / local conflict checks](15-import-flow.svg)
+
+## Backup / staged restore / restart
+
+[Open SVG](16-backup-restore.svg)
+
+![Backup / staged restore / restart](16-backup-restore.svg)

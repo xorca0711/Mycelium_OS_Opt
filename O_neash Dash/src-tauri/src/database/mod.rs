@@ -43,6 +43,7 @@ async fn initialize_on_worker(app: AppHandle) -> Result<DataLocation, String> {
     let instances = app.state::<DbInstances>();
     let mut databases = instances.0.write().await;
     if databases.contains_key(&location.database_url) { return Ok(location); }
+    crate::data_management::prepare_startup(Path::new(&location.directory)).await?;
     std::fs::create_dir_all(&location.directory).map_err(|e| e.to_string())?;
     let options = SqliteConnectOptions::new()
         .filename(Path::new(&location.directory).join("oneash-DB.db"))

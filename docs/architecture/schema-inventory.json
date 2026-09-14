@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "provenance": "Source-only fresh-install schema; no personal database opened",
   "tables": [
     {
@@ -62,6 +62,48 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_ace_canvas",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "canvas_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ace_canvas ON academic_canvas_edges(canvas_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_academic_canvas_edges_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "canvas_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "from_node_id"
+            },
+            {
+              "seqno": 2,
+              "cid": 2,
+              "name": "to_node_id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -132,6 +174,43 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_acn_canvas",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "canvas_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_acn_canvas ON academic_canvas_nodes(canvas_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_academic_canvas_nodes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "canvas_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "node_id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -172,7 +251,39 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_ac_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ac_project ON academic_canvases(project_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_academic_canvases_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "academic_subjects",
@@ -204,7 +315,24 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_academic_subjects_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "project_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "arcs",
@@ -260,7 +388,24 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_arcs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "dispatch_locations",
@@ -300,7 +445,24 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_dispatch_locations_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "dispatch_node_placements",
@@ -385,6 +547,53 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_dispatch_np_node",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "node_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_dispatch_np_node  ON dispatch_node_placements(node_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_dispatch_np_block",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "work_block_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_dispatch_np_block ON dispatch_node_placements(work_block_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_dispatch_node_placements_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -460,6 +669,38 @@
           "on_delete": "SET NULL",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_dispatch_wb_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_dispatch_wb_date ON dispatch_work_blocks(date)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_dispatch_work_blocks_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -527,6 +768,38 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_comments_doc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "doc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_comments_doc ON doc_comments(doc_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_doc_comments_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -567,7 +840,39 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_filmneg_cameras_type",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "type"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_cameras_type ON filmneg_cameras(type)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_filmneg_cameras_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "filmneg_photo_tags",
@@ -611,6 +916,58 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_filmneg_pt_tag",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "tag_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_pt_tag   ON filmneg_photo_tags(tag_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_filmneg_pt_photo",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "photo_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_pt_photo ON filmneg_photo_tags(photo_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_filmneg_photo_tags_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "photo_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "tag_id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -756,7 +1113,89 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_filmneg_photos_camera",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 16,
+              "name": "camera_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_photos_camera ON filmneg_photos(camera_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_filmneg_photos_geo",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 7,
+              "name": "lat"
+            },
+            {
+              "seqno": 1,
+              "cid": 8,
+              "name": "lng"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_photos_geo      ON filmneg_photos(lat, lng)"
+        },
+        {
+          "seq": 2,
+          "name": "idx_filmneg_photos_favorite",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 10,
+              "name": "is_favorite"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_photos_favorite ON filmneg_photos(is_favorite)"
+        },
+        {
+          "seq": 3,
+          "name": "idx_filmneg_photos_taken",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 4,
+              "name": "taken_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_photos_taken    ON filmneg_photos(taken_at)"
+        },
+        {
+          "seq": 4,
+          "name": "sqlite_autoindex_filmneg_photos_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "filmneg_tags",
@@ -796,7 +1235,39 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_filmneg_tags_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "name"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_filmneg_tags_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "filmneg_trail_photos",
@@ -848,6 +1319,63 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_filmneg_tp_photo",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "photo_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_tp_photo ON filmneg_trail_photos(photo_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_filmneg_tp_trail",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "trail_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "sort_order"
+            }
+          ],
+          "sql": "CREATE INDEX idx_filmneg_tp_trail ON filmneg_trail_photos(trail_id, sort_order)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_filmneg_trail_photos_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "trail_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "photo_id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -905,7 +1433,24 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_filmneg_trails_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "habit_logs",
@@ -963,6 +1508,73 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_habit_logs_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_habit_logs_date  ON habit_logs(date)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_habit_logs_habit",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "habit_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_habit_logs_habit ON habit_logs(habit_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_habit_logs_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "habit_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "date"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 3,
+          "name": "sqlite_autoindex_habit_logs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -1068,7 +1680,343 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_habits_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "import_records",
+      "sql": "CREATE TABLE import_records (\n  source_id    TEXT NOT NULL REFERENCES import_sources(id) ON DELETE RESTRICT,\n  external_id  TEXT NOT NULL,\n  note_id      TEXT REFERENCES notes(id) ON DELETE SET NULL,\n  content_hash TEXT NOT NULL,\n  source_updated_at TEXT,\n  imported_at  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  PRIMARY KEY(source_id, external_id)\n)",
+      "source": "src-tauri/src/database/schema/data.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "source_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "external_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 2
+        },
+        {
+          "cid": 2,
+          "name": "note_id",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "content_hash",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "source_updated_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "imported_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "notes",
+          "from": "note_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "SET NULL",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "import_sources",
+          "from": "source_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "RESTRICT",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_import_records_note",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "note_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_import_records_note ON import_records(note_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_import_records_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "source_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "external_id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "import_runs",
+      "sql": "CREATE TABLE import_runs (\n  id            TEXT PRIMARY KEY NOT NULL,\n  source_id     TEXT NOT NULL REFERENCES import_sources(id) ON DELETE RESTRICT,\n  started_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  completed_at  TEXT,\n  created_count INTEGER NOT NULL DEFAULT 0 CHECK(created_count >= 0),\n  updated_count INTEGER NOT NULL DEFAULT 0 CHECK(updated_count >= 0),\n  skipped_count INTEGER NOT NULL DEFAULT 0 CHECK(skipped_count >= 0),\n  status        TEXT NOT NULL DEFAULT 'running'\n)",
+      "source": "src-tauri/src/database/schema/data.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "source_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "started_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "completed_at",
+          "type": "TEXT",
+          "notnull": 0,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "created_count",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 5,
+          "name": "updated_count",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 6,
+          "name": "skipped_count",
+          "type": "INTEGER",
+          "notnull": 1,
+          "dflt_value": "0",
+          "pk": 0
+        },
+        {
+          "cid": 7,
+          "name": "status",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "'running'",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "import_sources",
+          "from": "source_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "RESTRICT",
+          "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_import_runs_source_started",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "source_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "started_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_import_runs_source_started ON import_runs(source_id, started_at DESC)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_import_runs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
+    },
+    {
+      "name": "import_sources",
+      "sql": "CREATE TABLE import_sources (\n  id         TEXT PRIMARY KEY NOT NULL,\n  kind       TEXT NOT NULL,\n  source_id  TEXT NOT NULL,\n  label      TEXT NOT NULL DEFAULT '',\n  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  UNIQUE(kind, source_id)\n)",
+      "source": "src-tauri/src/database/schema/data.sql",
+      "columns": [
+        {
+          "cid": 0,
+          "name": "id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 1
+        },
+        {
+          "cid": 1,
+          "name": "kind",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 2,
+          "name": "source_id",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": null,
+          "pk": 0
+        },
+        {
+          "cid": 3,
+          "name": "label",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "''",
+          "pk": 0
+        },
+        {
+          "cid": 4,
+          "name": "created_at",
+          "type": "TEXT",
+          "notnull": 1,
+          "dflt_value": "CURRENT_TIMESTAMP",
+          "pk": 0
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_import_sources_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "kind"
+            },
+            {
+              "seqno": 1,
+              "cid": 2,
+              "name": "source_id"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_import_sources_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "journal_entries",
@@ -1124,7 +2072,54 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_journal_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_journal_date ON journal_entries(date)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_journal_entries_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_journal_entries_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "mycelium_schema_migrations",
@@ -1148,7 +2143,8 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": []
     },
     {
       "name": "node_groups",
@@ -1192,6 +2188,58 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_ng_group",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ng_group ON node_groups(group_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_ng_node",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "node_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ng_node  ON node_groups(node_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_node_groups_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "node_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -1384,6 +2432,143 @@
           "on_delete": "SET NULL",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_nodes_is_routine",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 17,
+              "name": "is_routine"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_is_routine ON nodes(is_routine)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_nodes_routine_id",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 18,
+              "name": "routine_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_routine_id ON nodes(routine_id)"
+        },
+        {
+          "seq": 2,
+          "name": "idx_nodes_overdue",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 13,
+              "name": "is_overdue"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_overdue   ON nodes(is_overdue)"
+        },
+        {
+          "seq": 3,
+          "name": "idx_nodes_completed",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 11,
+              "name": "is_completed"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_completed ON nodes(is_completed)"
+        },
+        {
+          "seq": 4,
+          "name": "idx_nodes_planned",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 5,
+              "name": "planned_start_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_planned   ON nodes(planned_start_at)"
+        },
+        {
+          "seq": 5,
+          "name": "idx_nodes_due",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 6,
+              "name": "due_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_due       ON nodes(due_at)"
+        },
+        {
+          "seq": 6,
+          "name": "idx_nodes_arc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "arc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_arc       ON nodes(arc_id)"
+        },
+        {
+          "seq": 7,
+          "name": "idx_nodes_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_nodes_project   ON nodes(project_id)"
+        },
+        {
+          "seq": 8,
+          "name": "sqlite_autoindex_nodes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -1428,6 +2613,58 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_note_groups_group",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_note_groups_group ON note_groups(group_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_ng_note",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "note_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ng_note       ON note_groups(note_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_note_groups_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "note_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -1474,6 +2711,43 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_links_target",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "target_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_links_target ON note_links(target_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_note_links_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "source_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "target_id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -1508,6 +2782,43 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_note_title_aliases_title",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "title"
+            }
+          ],
+          "sql": "CREATE INDEX idx_note_title_aliases_title ON note_title_aliases(title)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_note_title_aliases_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "target_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "title"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -1634,6 +2945,143 @@
           "on_delete": "SET NULL",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_notes_status_order",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 5,
+              "name": "status"
+            },
+            {
+              "seqno": 1,
+              "cid": 8,
+              "name": "pinned"
+            },
+            {
+              "seqno": 2,
+              "cid": 11,
+              "name": "updated_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_status_order\n  ON notes(status, pinned DESC, updated_at DESC)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_notes_type_status_order",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "note_type"
+            },
+            {
+              "seqno": 1,
+              "cid": 5,
+              "name": "status"
+            },
+            {
+              "seqno": 2,
+              "cid": 8,
+              "name": "pinned"
+            },
+            {
+              "seqno": 3,
+              "cid": 11,
+              "name": "updated_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_type_status_order\n  ON notes(note_type, status, pinned DESC, updated_at DESC)"
+        },
+        {
+          "seq": 2,
+          "name": "idx_notes_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 7,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_project ON notes(project_id)"
+        },
+        {
+          "seq": 3,
+          "name": "idx_notes_arc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 6,
+              "name": "arc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_arc     ON notes(arc_id)"
+        },
+        {
+          "seq": 4,
+          "name": "idx_notes_status",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "note_type"
+            },
+            {
+              "seqno": 1,
+              "cid": 5,
+              "name": "status"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_status  ON notes(note_type, status)"
+        },
+        {
+          "seq": 5,
+          "name": "idx_notes_type",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "note_type"
+            }
+          ],
+          "sql": "CREATE INDEX idx_notes_type    ON notes(note_type)"
+        },
+        {
+          "seq": 6,
+          "name": "sqlite_autoindex_notes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -1682,7 +3130,24 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_personal_settings_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "personal_settings_history",
@@ -1722,7 +3187,8 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": []
     },
     {
       "name": "planner_groups",
@@ -1778,7 +3244,24 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_planner_groups_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "productivity_logs",
@@ -1828,6 +3311,38 @@
           "on_update": "NO ACTION",
           "on_delete": "SET NULL",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_productivity_logs_node",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "node_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_productivity_logs_node ON productivity_logs(node_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_productivity_logs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -1912,6 +3427,38 @@
           "on_delete": "SET NULL",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_projects_arc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "arc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_projects_arc    ON projects(arc_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_projects_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -1956,6 +3503,58 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_rg_group",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_rg_group   ON routine_groups(group_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_rg_routine",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "routine_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_rg_routine ON routine_groups(routine_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_routine_groups_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "routine_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "group_id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -2080,6 +3679,38 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_routine_rules_routine",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "routine_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_routine_rules_routine ON routine_rules(routine_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_routine_rules_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -2173,6 +3804,53 @@
           "on_delete": "SET NULL",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_routines_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 4,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_routines_project ON routines(project_id)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_routines_arc",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 3,
+              "name": "arc_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_routines_arc     ON routines(arc_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_routines_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -2248,6 +3926,63 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_session_nodes_effort",
+          "unique": 0,
+          "origin": "c",
+          "partial": 1,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "node_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 6,
+              "name": "total_minutes"
+            }
+          ],
+          "sql": "CREATE INDEX idx_session_nodes_effort\n  ON session_nodes(node_id, total_minutes) WHERE total_minutes > 0"
+        },
+        {
+          "seq": 1,
+          "name": "idx_sn_session",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "session_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_sn_session  ON session_nodes(session_id)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_session_nodes_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "session_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "node_id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -2307,6 +4042,38 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_sp_session",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "session_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_sp_session  ON session_pauses(session_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_session_pauses_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -2365,6 +4132,38 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_spb_session",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "session_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_spb_session ON session_pomo_blocks(session_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_session_pomo_blocks_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -2430,7 +4229,39 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_sleep_entries_start",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "sleep_start"
+            }
+          ],
+          "sql": "CREATE INDEX idx_sleep_entries_start ON sleep_entries(sleep_start)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_sleep_entries_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_sleep_entries_date  ON sleep_entries(date)"
+        }
+      ]
     },
     {
       "name": "sleep_targets",
@@ -2470,7 +4301,8 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": []
     },
     {
       "name": "sub_tasks",
@@ -2536,6 +4368,38 @@
           "on_update": "NO ACTION",
           "on_delete": "CASCADE",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_subtasks_node",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "node_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_subtasks_node ON sub_tasks(node_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_sub_tasks_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
         }
       ]
     },
@@ -2606,6 +4470,38 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_te_project",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "project_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_te_project ON tendril_edges(project_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_tendril_edges_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -2654,7 +4550,24 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_user_capacity_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "wardrobe_items",
@@ -2742,7 +4655,54 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_items_status",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 7,
+              "name": "status"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_items_status ON wardrobe_items(status)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_wardrobe_items_type",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 2,
+              "name": "item_type"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_items_type   ON wardrobe_items(item_type)"
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_wardrobe_items_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "wardrobe_ootd_logs",
@@ -2806,7 +4766,54 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_ootd_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_ootd_date ON wardrobe_ootd_logs(date)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_wardrobe_ootd_logs_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "date"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 2,
+          "name": "sqlite_autoindex_wardrobe_ootd_logs_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "wardrobe_wiki_entries",
@@ -2878,7 +4885,39 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_wiki_category",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "category"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_wiki_category ON wardrobe_wiki_entries(category)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_wardrobe_wiki_entries_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "wardrobe_wiki_gallery_images",
@@ -2945,6 +4984,38 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_gallery_entry",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "entry_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_gallery_entry ON wardrobe_wiki_gallery_images(entry_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_wardrobe_wiki_gallery_images_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -2990,6 +5061,43 @@
           "on_delete": "CASCADE",
           "match": "NONE"
         }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_wardrobe_wiki_links_target",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "target_id"
+            }
+          ],
+          "sql": "CREATE INDEX idx_wardrobe_wiki_links_target ON wardrobe_wiki_links(target_id)"
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_wardrobe_wiki_links_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "source_id"
+            },
+            {
+              "seqno": 1,
+              "cid": 1,
+              "name": "target_id"
+            }
+          ],
+          "sql": null
+        }
       ]
     },
     {
@@ -3022,7 +5130,39 @@
           "pk": 0
         }
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "sqlite_autoindex_work_locations_2",
+          "unique": 1,
+          "origin": "u",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 1,
+              "name": "name"
+            }
+          ],
+          "sql": null
+        },
+        {
+          "seq": 1,
+          "name": "sqlite_autoindex_work_locations_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
+        }
+      ]
     },
     {
       "name": "work_sessions",
@@ -3104,6 +5244,73 @@
           "on_update": "NO ACTION",
           "on_delete": "SET NULL",
           "match": "NONE"
+        }
+      ],
+      "indexes": [
+        {
+          "seq": 0,
+          "name": "idx_ws_date_created",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 3,
+              "name": "planned_date"
+            },
+            {
+              "seqno": 1,
+              "cid": 7,
+              "name": "created_at"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ws_date_created\n  ON work_sessions(planned_date DESC, created_at DESC)"
+        },
+        {
+          "seq": 1,
+          "name": "idx_ws_date",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 3,
+              "name": "planned_date"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ws_date     ON work_sessions(planned_date)"
+        },
+        {
+          "seq": 2,
+          "name": "idx_ws_status",
+          "unique": 0,
+          "origin": "c",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 6,
+              "name": "status"
+            }
+          ],
+          "sql": "CREATE INDEX idx_ws_status   ON work_sessions(status)"
+        },
+        {
+          "seq": 3,
+          "name": "sqlite_autoindex_work_sessions_1",
+          "unique": 1,
+          "origin": "pk",
+          "partial": 0,
+          "columns": [
+            {
+              "seqno": 0,
+              "cid": 0,
+              "name": "id"
+            }
+          ],
+          "sql": null
         }
       ]
     }

@@ -3,18 +3,21 @@ import { WidgetStudio } from './sections/WidgetStudio';
 import { ArcVisibility } from './sections/ArcVisibility';
 import { Appearance } from './sections/Appearance';
 import { PersonalSettings } from './sections/PersonalSettings';
+import { DataSettings } from './sections/DataSettings';
 
-type Section = 'personal' | 'widgets' | 'general' | 'appearance';
+type Section = 'personal' | 'widgets' | 'general' | 'appearance' | 'data';
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: 'personal',    label: 'PERSONAL'      },
   { id: 'widgets',     label: 'WIDGET STUDIO' },
   { id: 'general',     label: 'ARC VISIBILITY'},
   { id: 'appearance',  label: 'APPEARANCE'    },
+  { id: 'data',        label: 'DATA'          },
 ];
 
 function SettingsPlugin() {
   const [activeIdx, setActiveIdx] = useState(0);
+  const [draftPending, setDraftPending] = useState(false);
   const active = SECTIONS[activeIdx].id;
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -102,8 +105,9 @@ function SettingsPlugin() {
 
       {/* ── Content ── */}
       <div style={{ flex: 1, minHeight: 0, minWidth: 0, marginTop: '1.5rem', overflowY: 'auto', overflowX: 'hidden', padding: '4px' }}>
-        <div id="settings-panel-personal" role="tabpanel" aria-labelledby="settings-tab-personal" hidden={active !== 'personal'}><PersonalSettings /></div>
-        {active !== 'personal' && <div id={`settings-panel-${active}`} role="tabpanel" aria-labelledby={`settings-tab-${active}`} style={{ height: '100%' }}>
+        <div id="settings-panel-personal" role="tabpanel" aria-labelledby="settings-tab-personal" hidden={active !== 'personal'}><PersonalSettings onDirtyChange={setDraftPending} /></div>
+        <div id="settings-panel-data" role="tabpanel" aria-labelledby="settings-tab-data" hidden={active !== 'data'}><DataSettings active={active === 'data'} draftPending={draftPending} onEditPersonal={() => { setActiveIdx(0); tabs.current[0]?.focus(); }} /></div>
+        {active !== 'personal' && active !== 'data' && <div id={`settings-panel-${active}`} role="tabpanel" aria-labelledby={`settings-tab-${active}`} style={{ height: '100%' }}>
           {active === 'widgets' && <WidgetStudio />}
           {active === 'general' && <ArcVisibility />}
           {active === 'appearance' && <Appearance />}

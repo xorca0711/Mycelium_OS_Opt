@@ -39,6 +39,7 @@
     {
       "identifier": "http:default",
       "allow": [
+        { "url": "https://api.notion.com/v1/*" },
         { "url": "https://hn.algolia.com/*" },
         { "url": "https://www.nature.com/*" },
         { "url": "https://www.cell.com/*" },

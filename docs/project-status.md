@@ -4,11 +4,11 @@ Updated: 2026-09-14. Working branch: `codex/local-setup`.
 
 ## Current checkpoint
 
-The Windows ARM64 desktop application launches; the user confirmed the launch.
-Step 6 personal settings is implemented on top of the step 5 reliability/performance
-checkpoint. Step 4 has passed native data/persistence checks, with remaining
-interactive checks explicitly listed below.
-No installer has been produced.
+The Windows ARM64 desktop application launches; the user confirmed the earlier development launch.
+Stage 8 database management and Notion/file imports are implemented on top of the
+personal settings and reliability work. Stage 7 Windows ARM64 and x64 NSIS installers
+are built. The ARM64 app is installed and passes standalone startup checks; the x64
+executable's architecture is verified. Remaining interactive checks are listed below.
 
 The application root is `O_neash Dash/`. Baseline commit
 `30808848abb2dd650e064ae6917a1984842fb544` imported upstream
@@ -21,33 +21,66 @@ Commit `e6e6a4f` preserved the verified step 5 changes and architecture gallery.
 | Area | Result |
 |---|---|
 | Window behavior | Centered, resizable 1100 × 720 window with native title bar; minimum 800 × 600; fullscreen disabled |
+| Windows distribution | Separate native ARM64 and Intel/AMD x64 installers; per-user installation with Start menu/desktop shortcuts and WebView2 bootstrapper; no Vite or development tools required after installation |
 | Development storage | Native-selected `Documents/O-neash-data-dev`; release retains `Documents/O-neash-data` |
-| Database reliability | Versioned migration ledger through v5, legacy routine/wardrobe preservation, native atomic write batches, corrected cascade trigger |
+| Database reliability | Versioned migration ledger through v6, legacy routine/wardrobe preservation, native atomic write batches, corrected cascade trigger, six query-backed indexes and environment instance locks |
+| Data management | Settings → Data: read-only paginated table browsing, whole-table CSV/JSON exports, validated database/media/preference backups and staged restore with rollback-folder retention |
+| Notion and file imports | Explicit preview of selected Notion pages/database rows or mapped CSV/JSON records into Notes; source identity/history, atomic note/provenance writes, incremental body-download skips, local-edit/archive/delete preservation |
+| Import boundaries | Memory-only token; no startup Notion requests; sequential pacing, retries and cancellation; Markdown/properties stored as editable text, relations remain IDs; no automatic task mapping, media download or two-way sync |
 | Personal settings | Optional name/avatar, home clock timezone, supported regional formats, Planner week start, seven-day capacity, focus/break preferences, module/feed visibility and Analytics data sources |
 | Preference history | Validated JSON v1 in SQLite; each explicit save atomically updates the current profile and appends a revision; existing activity records remain intact |
 | Personal data controls | Historical sleep-target updates, weather-location clearing, links to habit/project/subject editors and native-selected storage paths |
 | Personal planning | Suggestions account for daily availability and breaks; rest days suppress extra suggestions; calendars follow the selected week start |
-| Notes | Shared normal/floating state, serialized debounced saves, error/retry feedback, save-before-close, stable wiki-link IDs and rename aliases |
+| Notes | Shared normal/floating state, serialized document and memo saves, retained failed drafts, error/retry feedback, flush-before-backup/close, stable wiki-link IDs and rename aliases |
 | Planner/session data | Batched task/group loading, targeted refresh, atomic completion/deletion, accumulated effort, serialized session operations and two-session moves |
 | Analytics | Local-calendar boundaries, shared observation times, bounded waking windows, calendar-based IRF lags |
 | Startup/feeds | Removed forced splash delay, lazy plugins, unmounted hidden widget panel, cached/coalesced feed requests with stale-data retention |
 | Windows PDF | Unsupported export disabled and labelled unavailable |
-| Customization | Editable 13-page diagram, SVG gallery, fresh-schema inventory (48 tables / 43 declared foreign keys), source-linked customization/data guides |
+| Customization | Editable 16-page diagram, SVG gallery, fresh-schema inventory (51 application tables / 46 declared foreign keys), source-linked customization/data guides |
 
 ## Verification
 
+- The ARM64 NSIS release installer built successfully and installed for the current
+  Windows user with exit code 0. The installed executable has ARM64 PE architecture
+  (`0xAA64`), and Start menu/desktop shortcuts exist. A launch from
+  `%LOCALAPPDATA%/Mycelium/Mycelium.exe` produced a responsive Mycelium window while
+  no development server listened on port 1420. The newly created release database
+  initialized through migration 6 with 51 tables including the migration ledger,
+  `integrity_check = ok`, zero foreign-key violations and no imported records.
+  This verifies native startup and database initialization, not a full native UI workflow.
+- The x64 NSIS release installer also built successfully. Its application executable
+  has x64 PE architecture (`0x8664`) and uses the generic x64 target with no custom
+  CPU flags. Both executables' static imports reference Windows system libraries.
+  The x64 installer was not installed over the native ARM64 copy; runtime verification
+  on an Intel/AMD PC remains pending. Both builds use the same schema and backup format.
+- The development executable was also rebuilt with the new native Data commands;
+  the existing development launcher can reopen it with Vite.
 - TypeScript checks and Vite production build passed. Vite still warns about chunks
   larger than 500 kB; the rich-text editor and shared startup code can be split further.
-- All 57 JavaScript regression tests passed. They cover real in-memory SQLite rollback, task query
+- All 84 JavaScript regression tests passed. They cover real in-memory SQLite rollback, task query
   counts, session accounting, time-zone boundaries, notes save races, stable links,
   save-before-close logic, feed caching, analytics windows, concurrent session actions,
   settings validation/history/rollback, avatar bounds, feature gates, weekly capacity,
   week ordering, deduplicated capacity reservations for scheduled/overdue/session work,
-  and weather-location notifications.
-- Eight native SQLite tests passed with `cargo test --offline --locked --lib
+  weather-location notifications, CSV/JSON parsing, Notion request cancellation/timeouts/retry cleanup,
+  unchanged-page body skips, import identity/conflicts/atomic rollback, memo flushing,
+  preference handoff rollback and measured before/after query plans on synthetic rows.
+- Nine native SQLite migration tests passed with `cargo test --offline --locked --lib
   database_tests` from `O_neash Dash/src-tauri`. They cover fresh/legacy upgrade,
   repeat migration, interruption rollback, related-data preservation, batch rollback,
-  cascade behavior, development-directory isolation, and v4→v5 settings migration rollback/preservation.
+  cascade behavior, development-directory isolation, settings migration and v6 provenance rollback/preservation.
+- Eleven native data-management tests pass against temporary fixtures: database/media checksums,
+  required schema tables, staged transfer and media relinking, interrupted rename recovery,
+  atomic sidecar publication, rollback receipts, environment locks, browse/export validation,
+  pool reopening after backup failure, and byte-preserving restore of imported notes and
+  literal path text. Together with the migration suite, 20 native tests pass. No personal
+  data was used in these tests.
+- An isolated Data component preview at 800 × 600 verified table rendering, CSV field mapping,
+  explicit preview and import completion feedback. Database operations were mocked; real
+  import transactions are covered by the SQLite tests. This does not verify a live Notion account.
+- The AGENTS.md scanner `npx @Codex-flow/cli@latest security scan` was attempted but npm
+  returned E404: the named package is unavailable and uppercase package names are invalid.
+  No successful result from that scanner is claimed. The repository has no npm lint script.
 - An isolated browser component preview at 1100 × 720 and 800 × 600 verified Settings
   layout and scrolling, saving synthetic preferences, retaining drafts across Settings
   tabs, and discarding changes. Its DB/location adapters were mocked; this is not a
@@ -66,16 +99,17 @@ Commit `e6e6a4f` preserved the verified step 5 changes and architecture gallery.
   integrity all passed.
 - At the step 5 restart for the window-mode configuration change, those records,
   image and setting persisted. Migration versions then remained 1–4.
-- Diagram XML/geometry, table coverage and source links were validated; the 12 original
-  previews and the changed runtime/storage/new preferences previews were visually inspected.
+- Diagram XML/geometry, all 16 pages' table coverage and source links were validated;
+  the original previews and changed runtime/storage/preferences/import/backup previews
+  were visually inspected.
   Source schema was loaded only into an in-memory
   database; no personal database content is included in the diagrams.
 
 ## Remaining interactive checks
 
 Computer Use was stopped with the physical Escape key during step 5. No further
-native UI click automation was performed; the later requested launch used the development
-command. Full click-through verification of both note editors,
+native UI click automation was performed; later requested launches used commands,
+including the installed release executable. Full click-through verification of both note editors,
 native image selection, pending-save window closure, window resizing/layout,
 and whole-app offline operation remains pending. Stage 6 native click-through/restart
 with a user-chosen profile is also pending. Logic/API and browser component tests do not
@@ -89,7 +123,16 @@ history was imported. Git preserves source, lockfiles, tests, diagrams and this
 status record; it does not preserve a running process, local databases/media,
 WebView preferences, dependencies or build output.
 
-From a new terminal in `O_neash Dash/`:
+For standalone daily use, open **Mycelium** from the Start menu or desktop shortcut.
+The installed executable is `%LOCALAPPDATA%/Mycelium/Mycelium.exe`, and its database
+is `Documents/O-neash-data/oneash-DB.db`. No development records were copied into it.
+The ARM64 installer is `O_neash Dash/src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/Mycelium_0.1.0_arm64-setup.exe`
+(11,206,749 bytes; SHA-256 `3E6F9C3C9BBFA8B89923DF5C0EAF80507E8D312C8BFD4DE7F455426C8091D06F`).
+The Intel/AMD x64 installer is `O_neash Dash/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/Mycelium_0.1.0_x64-setup.exe`
+(11,931,662 bytes; SHA-256 `FBCAA46785BE3E3515EE437D8810AE43A181A11C42344263B65BFEA1A1229297`).
+These local installers are ignored build outputs, not uploaded GitHub release assets.
+
+For development, from a new terminal in `O_neash Dash/`:
 
 ```powershell
 pnpm tauri dev
@@ -105,7 +148,7 @@ test command above. The native smoke script additionally requires the developmen
 WebView debugging port 9223; its seed phase creates sample data and refuses release
 storage. Use `verify` after an existing sample run.
 
-For daily reopening after a native build, use `O_neash Dash/scripts/Launch-Mycelium.cmd`.
+For development reopening after a native build, use `O_neash Dash/scripts/Launch-Mycelium.cmd`.
 It starts an owned background Vite process and the existing debug executable; `-StopServer`
 stops only the server recorded by that launcher, after app windows are closed. It does
 not install dependencies or rebuild Rust. See the [launch and navigation manual](../README.md#everyday-launch-on-windows).
@@ -120,9 +163,15 @@ The timezone setting affects the home clock; task/log dates remain device-local.
 Regional formatting does not translate the interface. Focus preferences affect suggestions
 and estimates; they do not automatically start/pause work sessions.
 
-Installer packaging (step 7) and personal history import/backup tooling (step 8) remain
-future work. Storage paths are displayed, not relocated. Preference revision history is
-stored for audit; a history browser/restore UI is not yet implemented.
+Use **Settings → Data** for backup/restore, table inspection/export and imports. Restoring a
+development backup into an installed app explicitly replaces the destination workspace after
+restart and retains the previous folder. No personal backup has been restored automatically.
+Notion account setup remains user-specific: grant Read content access to a selected source and
+enter its token in the app. No token or source was supplied for live-account verification.
+The first importer accepts up to 100 recently edited Notion rows, 500 file records, one million
+characters per note and five million per batch. It does not export the entire Notion workspace.
+Storage paths are displayed, not arbitrarily relocated. Preference revision history is stored
+for audit; a per-revision profile history browser is not yet implemented.
 
 ## GitHub ownership and visibility
 

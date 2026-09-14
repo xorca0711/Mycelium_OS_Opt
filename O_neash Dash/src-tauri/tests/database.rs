@@ -56,7 +56,7 @@ fn fresh_database_has_versioned_schema_and_enforces_foreign_keys() {
     tauri::async_runtime::block_on(async {
         let mut connection = memory_connection().await;
         migrations::migrate(&mut connection).await.unwrap();
-        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 5);
+        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, migrations::CURRENT_VERSION);
         let columns = sqlx::query("PRAGMA table_info(habits)").fetch_all(&mut connection).await.unwrap();
         assert!(columns.iter().any(|column| column.get::<String, _>("name") == "source"));
         assert!(sqlx::query("INSERT INTO note_title_aliases VALUES ('missing','Title')")
@@ -114,7 +114,7 @@ fn migration_failure_rolls_back_schema_data_and_version_records() {
         let foreign_keys: i64 = sqlx::query_scalar("PRAGMA foreign_keys").fetch_one(&mut connection).await.unwrap();
         assert_eq!(foreign_keys, 1);
         migrations::migrate(&mut connection).await.unwrap();
-        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 5);
+        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, migrations::CURRENT_VERSION);
     });
 }
 
@@ -193,9 +193,9 @@ fn settings_v5_upgrade_is_atomic_and_repeated_migrations_preserve_revisions() {
     tauri::async_runtime::block_on(async {
         let mut connection = memory_connection().await;
         migrations::migrate(&mut connection).await.unwrap();
-        // Reconstruct the exact v4 schema, with existing capacity and a linked task.
+        // Reconstruct the v4 settings state, retaining later additive tables and existing capacity.
         sqlx::raw_sql("DROP TABLE personal_settings; DROP TABLE personal_settings_history;
-            DELETE FROM mycelium_schema_migrations WHERE version=5;
+            DELETE FROM mycelium_schema_migrations WHERE version>=5;
             UPDATE user_capacity SET daily_minutes=345,peak_start='10:00' WHERE id='default';
             INSERT INTO nodes(id,title) VALUES ('keep','Existing task');")
             .execute(&mut connection).await.unwrap();
@@ -215,7 +215,7 @@ fn settings_v5_upgrade_is_atomic_and_repeated_migrations_preserve_revisions() {
         sqlx::query("INSERT INTO personal_settings_history SELECT revision,schema_version,settings_json,saved_at FROM personal_settings")
             .execute(&mut connection).await.unwrap();
         for _ in 0..2 { migrations::migrate(&mut connection).await.unwrap(); }
-        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 5);
+        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, migrations::CURRENT_VERSION);
         assert_eq!(count(&mut connection, "nodes").await, 1);
         assert_eq!(count(&mut connection, "node_groups").await, 1);
         for table in ["personal_settings", "personal_settings_history"] {
@@ -224,5 +224,64 @@ fn settings_v5_upgrade_is_atomic_and_repeated_migrations_preserve_revisions() {
                 .fetch_one(&mut connection).await.unwrap();
             assert_eq!(saved, document);
         }
+    });
+}
+
+#[test]
+fn import_v6_upgrade_rolls_back_then_preserves_records_and_provenance() {
+    tauri::async_runtime::block_on(async {
+        let mut connection = memory_connection().await;
+        migrations::migrate(&mut connection).await.unwrap();
+        // Reconstruct v5: all v6 additions are independent tables or indexes.
+        sqlx::raw_sql("DROP TABLE import_runs; DROP TABLE import_records; DROP TABLE import_sources;
+            DROP INDEX idx_notes_type_status_order; DROP INDEX idx_notes_status_order;
+            DROP INDEX idx_ws_date_created; DROP INDEX idx_productivity_logs_node;
+            DROP INDEX idx_note_groups_group; DROP INDEX idx_session_nodes_effort;
+            DELETE FROM mycelium_schema_migrations WHERE version=6;
+            INSERT INTO notes(id,note_type,title,content_json) VALUES ('keep-doc','document','한국어 note','{\"type\":\"doc\"}');
+            INSERT INTO nodes(id,title) VALUES ('keep-task','Existing task');
+            INSERT INTO productivity_logs(id,node_id,duration_actual) VALUES ('keep-log','keep-task',35);
+            CREATE TABLE custom_history(value TEXT); INSERT INTO custom_history VALUES ('preserved');")
+            .execute(&mut connection).await.unwrap();
+
+        assert!(migrations::migrate_with_failure(&mut connection, Some(6)).await.is_err());
+        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, 5);
+        let additions: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE name IN ('import_sources','import_records','import_runs','idx_notes_type_status_order','idx_note_groups_group')")
+            .fetch_one(&mut connection).await.unwrap();
+        assert_eq!(additions, 0);
+        for _ in 0..2 { migrations::migrate(&mut connection).await.unwrap(); }
+        assert_eq!(count(&mut connection, "mycelium_schema_migrations").await, migrations::CURRENT_VERSION);
+        let note: (String, String) = sqlx::query_as("SELECT title,content_json FROM notes WHERE id='keep-doc'")
+            .fetch_one(&mut connection).await.unwrap();
+        assert_eq!(note, ("한국어 note".into(), "{\"type\":\"doc\"}".into()));
+        assert_eq!(count(&mut connection, "node_groups").await, 1);
+        assert_eq!(count(&mut connection, "productivity_logs").await, 1);
+        let preserved: String = sqlx::query_scalar("SELECT value FROM custom_history").fetch_one(&mut connection).await.unwrap();
+        assert_eq!(preserved, "preserved");
+
+        sqlx::raw_sql("INSERT INTO import_sources(id,kind,source_id) VALUES ('source','notion','external-source');
+            INSERT INTO import_records(source_id,external_id,note_id,content_hash,source_updated_at)
+                VALUES ('source','external-page','keep-doc','baseline-hash','2026-09-14T00:00:00Z');
+            INSERT INTO import_runs(id,source_id,created_count,status) VALUES ('run','source',1,'completed');")
+            .execute(&mut connection).await.unwrap();
+        for sql in [
+            "INSERT INTO import_sources(id,kind,source_id) VALUES ('duplicate','notion','external-source')",
+            "INSERT INTO import_records(source_id,external_id,content_hash) VALUES ('source','external-page','duplicate')",
+            "INSERT INTO import_records(source_id,external_id,note_id,content_hash) VALUES ('source','missing-note','absent','hash')",
+            "INSERT INTO import_runs(id,source_id) VALUES ('missing-source','absent')",
+            "INSERT INTO import_runs(id,source_id,created_count) VALUES ('negative','source',-1)",
+            "DELETE FROM import_sources WHERE id='source'",
+        ] {
+            assert!(sqlx::query(sql).execute(&mut connection).await.is_err(), "{sql}");
+        }
+        migrations::migrate(&mut connection).await.unwrap();
+        assert_eq!(count(&mut connection, "import_records").await, 1);
+        sqlx::query("DELETE FROM notes WHERE id='keep-doc'").execute(&mut connection).await.unwrap();
+        let provenance: (Option<String>, String, Option<String>) = sqlx::query_as("SELECT note_id,content_hash,source_updated_at FROM import_records")
+            .fetch_one(&mut connection).await.unwrap();
+        assert_eq!(provenance, (None, "baseline-hash".into(), Some("2026-09-14T00:00:00Z".into())));
+        assert_eq!(count(&mut connection, "import_runs").await, 1);
+        let foreign_keys: i64 = sqlx::query_scalar("PRAGMA foreign_keys").fetch_one(&mut connection).await.unwrap();
+        assert_eq!(foreign_keys, 1);
     });
 }
