@@ -28,6 +28,39 @@ See the [verified project status](docs/project-status.md), [architecture diagram
 
 **Stage 6:** Open **Settings → Personal** to edit your name/avatar, home clock timezone, supported regional formats, Planner week start, daily availability, focus/break preferences, modules, feeds and Analytics sources. Save applies preferences and preserves a SQLite revision history. The same screen exposes sleep targets, weather-location clearing, links to goal editors and the local storage path. Import/backup tools and an installer remain later steps.
 
+## Everyday launch on Windows
+
+After the initial native build, double-click [Launch-Mycelium.cmd](O_neash%20Dash/scripts/Launch-Mycelium.cmd) in File Explorer. It starts Vite in the background and opens the existing native executable. It works without pnpm or Rust on your terminal PATH for daily launches; Node.js, installed project dependencies and the built executable are required. Closing the brief launcher terminal does not stop the app. Errors stay visible in that terminal; server logs are under `O_neash Dash/build/launcher/`.
+
+From the **repository root**, PowerShell:
+
+```powershell
+& '.\O_neash Dash\scripts\Launch-Mycelium.cmd'
+```
+
+Git Bash:
+
+```bash
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'O_neash Dash/scripts/start-mycelium.ps1'
+```
+
+The launcher reuses its server when called again. After closing all Mycelium windows, stop that server with the same command followed by `-StopServer`. A server already started by `pnpm tauri dev` must be stopped in its own terminal before using this launcher.
+
+The debug executable at `O_neash Dash/src-tauri/target/debug/Mycelium.exe` needs Vite on port 1420. Use the launcher for normal reopening. After native Rust/configuration changes, use `pnpm tauri dev` from `O_neash Dash` to rebuild; keep that development terminal open. The quick launcher does not rebuild Rust or install dependencies. A standalone `.exe`/installer without Vite remains stage 7.
+
+## Returning Home and basic controls
+
+| Action | Existing control |
+|---|---|
+| Return to Home from a module | Move the pointer to the far-left edge of the app's client area, around its vertical middle, then click **HOMEPAGE** in the slide-out menu |
+| Switch modules | Use that same left-edge menu, or return Home and choose an app |
+| Navigate the Home launcher | Left/Right changes categories; Up/Down changes the selected app; Enter opens it; visible category numbers also work |
+| Leave a floating note | Use **← back**, close it, or click its backdrop; pending note saves are flushed first |
+| Open Planner command palette | Ctrl+K on Windows (Cmd+K on macOS), while Planner is active |
+| Change personal preferences | Settings → Personal → Save personal settings |
+
+There is currently **no global Home keyboard shortcut**. Escape closes certain dialogs/quick-action panels; it is not a universal Home/back action. Home launcher shortcuts do not run while editing text or when a floating editor is open. Number keys inside Settings/Notes/Sleep can switch that module's internal tabs instead. Save or discard personal-settings drafts before navigating to another module.
+
 ## Upstream overview
 <div align="center">
 <img width="70%" alt="image" src="https://github.com/user-attachments/assets/629719a4-f7f5-432b-aeb6-db5b4c9140ec" />

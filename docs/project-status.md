@@ -105,6 +105,11 @@ test command above. The native smoke script additionally requires the developmen
 WebView debugging port 9223; its seed phase creates sample data and refuses release
 storage. Use `verify` after an existing sample run.
 
+For daily reopening after a native build, use `O_neash Dash/scripts/Launch-Mycelium.cmd`.
+It starts an owned background Vite process and the existing debug executable; `-StopServer`
+stops only the server recorded by that launcher, after app windows are closed. It does
+not install dependencies or rebuild Rust. See the [launch and navigation manual](../README.md#everyday-launch-on-windows).
+
 See the [diagram gallery](architecture/previews.md),
 [customization map](architecture/customization-map.md), and
 [raw-data/connection guide](architecture/local-data-connections.md).
