@@ -24,9 +24,9 @@ pnpm tauri info
 
 The checked-in pnpm build policy permits only esbuild's required install script. These checks build/inspect the code using isolated test databases. Run `pnpm tauri dev` to launch the desktop app in a normal, resizable 1100 × 720 window. It starts Vite on port 1420 and the native executable; no database server is required. Keep that terminal running during development.
 
-See the [verified project status](docs/project-status.md), [architecture diagram gallery](docs/architecture/previews.md), [editable draw.io file](docs/architecture/mycelium-architecture.drawio), [customization map](docs/architecture/customization-map.md), and [local database/data-source guide](docs/architecture/local-data-connections.md).
+See the [verified project status](docs/project-status.md), [release notes and upstream comparison](docs/release-notes.md), [architecture diagram gallery](docs/architecture/previews.md), [editable draw.io file](docs/architecture/mycelium-architecture.drawio), [customization map](docs/architecture/customization-map.md), and [local database/data-source guide](docs/architecture/local-data-connections.md).
 
-**Personal settings:** Open **Settings → Personal** to edit your name/avatar, home clock timezone, supported regional formats, Planner week start, daily availability, focus/break preferences, modules, feeds and Analytics sources. Save applies preferences and preserves a SQLite revision history. The same screen exposes sleep targets, weather-location clearing, links to goal editors and the local storage path.
+**Personal settings:** Choose **Edit profile** beside the Home greeting to change the display name, or open **Settings → Personal** to edit your name/avatar, home clock timezone, supported regional formats, Planner week start, daily availability, focus/break preferences, modules, feeds and Analytics sources. Save applies preferences and preserves a SQLite revision history. The same screen exposes sleep targets, weather-location clearing, links to goal editors and the local storage path.
 
 **Data tools:** Open **Settings → Data** for table browsing, CSV/JSON exports, workspace backup/restore, and explicit Notion or CSV/JSON imports into Notes. See the [connection guide](docs/architecture/local-data-connections.md) and [import flow](docs/architecture/15-import-flow.svg).
 
@@ -269,7 +269,7 @@ O_neash Dash/
 
 ### Database
 
-Domain records and personal settings share one SQLite file per environment. The Rust database module runs versioned migrations before the frontend obtains the shared pool. The current fresh schema has 51 application tables and 46 declared foreign keys; media files and WebView appearance/layout settings have separate storage. See the [schema inventory](docs/architecture/schema-inventory.md) for exact columns and constraints.
+Domain records and personal settings share one SQLite file per environment. The Rust database module runs versioned migrations before the frontend obtains the shared pool. The current fresh schema has 51 tables including the migration ledger and 46 declared foreign keys; media files and WebView appearance/layout settings have separate storage. See the [schema inventory](docs/architecture/schema-inventory.md) for exact columns and constraints.
 
 Key tables:
 

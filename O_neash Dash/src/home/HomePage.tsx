@@ -7,6 +7,7 @@ import { usePlannerStore } from "../plugins/PlannerPlugin/store/usePlannerStore"
 import { QuickActionButtons } from "./quick-actions/QuickActionButtons";
 import { WeatherPanel } from "./weather/WeatherPanel";
 import { usePersonalSettingsStore } from '../store/usePersonalSettingsStore';
+import usePluginStore from '../store/usePluginStore';
 import { feedEnabled, pluginEnabled } from '../lib/personalFeaturePolicy';
 import './HomePage.css';
 import { QuotePanel } from "./quote/QuotePanel";
@@ -73,6 +74,7 @@ function AvatarWithEyes() {
 
 function HomePage() {
   const { settings, loaded, error } = usePersonalSettingsStore();
+  const openProfileSettings = usePluginStore(state => state.openProfileSettings);
   const ready = loaded && !error;
   const showNews = feedEnabled('news', settings, ready);
   const showResearch = feedEnabled('research', settings, ready);
@@ -140,8 +142,9 @@ function HomePage() {
                   overflowWrap: "anywhere",
                 }}
               >
-                {settings.displayName}
+                {settings.displayName || 'Your name'}
               </div>
+              <button type="button" className="personal-home-edit-profile" onClick={openProfileSettings}>Edit profile</button>
             </div>
           </div>
 

@@ -1,12 +1,12 @@
 # SQLite schema inventory
 
-Generated from source schema and additive migrations through version 6. **51 application tables, one SQLite file.** Internal SQLite tables (for example sqlite_sequence) are excluded. No personal database was inspected.
+Generated from source schema and additive migrations through version 6. **51 tables including the migration ledger, one SQLite file.** Internal SQLite tables (for example sqlite_sequence) are excluded. No personal database was inspected.
 
 Fresh-install constraints are shown. Existing databases retain historical columns/tables; adding an old missing column does not recreate fresh-schema foreign keys. `routine_occurrences` is preserved when present, but not created by the current schema. `note_task_links` is referenced by legacy planner code but is not declared by the current schema; its existence and constraints are not assumed. The version ledger is `mycelium_schema_migrations`, not a `schema_version` table.
 
 ## academic_canvas_edges
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -21,7 +21,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## academic_canvas_nodes
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -38,7 +38,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## academic_canvases
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -54,7 +54,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## academic_subjects
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -68,7 +68,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## arcs
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -85,7 +85,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## dispatch_locations
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -100,7 +100,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## dispatch_node_placements
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -120,7 +120,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## dispatch_work_blocks
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -139,7 +139,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## doc_comments
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -157,7 +157,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## filmneg_cameras
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -173,7 +173,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## filmneg_photo_tags
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -188,7 +188,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## filmneg_photos
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -220,7 +220,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## filmneg_tags
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -236,7 +236,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## filmneg_trail_photos
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -252,7 +252,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## filmneg_trails
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -269,7 +269,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## habit_logs
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -288,7 +288,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## habits
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -311,7 +311,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## import_records
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/data.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/data.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -329,7 +329,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## import_runs
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/data.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/data.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -349,7 +349,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## import_sources
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/data.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/data.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -366,7 +366,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## journal_entries
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -385,7 +385,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## mycelium_schema_migrations
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/migrations.rs)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/migrations.rs)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -394,7 +394,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## node_groups
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -409,7 +409,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## nodes
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -447,7 +447,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## note_groups
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -462,7 +462,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## note_links
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -476,7 +476,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## note_title_aliases
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/migrations.rs)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/migrations.rs)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -490,7 +490,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## notes
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -519,7 +519,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## personal_settings
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/settings.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/settings.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -535,7 +535,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## personal_settings_history
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/settings.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/settings.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -546,7 +546,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## planner_groups
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -563,7 +563,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## productivity_logs
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -579,7 +579,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## projects
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -599,7 +599,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## routine_groups
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -614,7 +614,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## routine_rules
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -639,7 +639,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## routines
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -660,7 +660,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## session_nodes
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -680,7 +680,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## session_pauses
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -697,7 +697,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## session_pomo_blocks
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -714,7 +714,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## sleep_entries
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -733,7 +733,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## sleep_targets
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -744,7 +744,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## sub_tasks
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -762,7 +762,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## tendril_edges
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -779,7 +779,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## user_capacity
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/planner.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -795,7 +795,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## wardrobe_items
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -818,7 +818,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## wardrobe_ootd_logs
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -838,7 +838,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## wardrobe_wiki_entries
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -858,7 +858,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## wardrobe_wiki_gallery_images
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -876,7 +876,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## wardrobe_wiki_links
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/collections.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -890,7 +890,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## work_locations
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -905,7 +905,7 @@ Fresh-install constraints are shown. Existing databases retain historical column
 
 ## work_sessions
 
-[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
+[Schema source](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/src-tauri/src/database/schema/personal.sql)
 
 | Column | SQLite type | Key | Required | Default |
 |---|---|---|---|---|
@@ -941,7 +941,7 @@ Sleep/output analytics joins `sleep_entries.wake_time` to `nodes.actual_complete
 
 ## Migration 6 query-index evidence
 
-[Source-extracted SQLite tests](https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/tests/dataIndexes.test.mjs) compare plans and results against 2,000 synthetic records per main fixture table. These are query-plan observations, not measured application speedups. Existing indexes remain intact.
+[Source-extracted SQLite tests](https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/tests/dataIndexes.test.mjs) compare plans and results against 2,000 synthetic records per main fixture table. These are query-plan observations, not measured application speedups. Existing indexes remain intact.
 
 | Added index | Existing query / observed plan change |
 |---|---|

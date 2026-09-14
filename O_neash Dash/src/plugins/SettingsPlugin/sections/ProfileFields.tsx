@@ -37,7 +37,8 @@ export function ProfileFields({ value, onChange, onBusyChange }: PersonalFieldPr
       <legend>Profile & regional format</legend>
       <div className="personal-grid">
         <label htmlFor="personal-display-name">Display name <span className="personal-hint">(optional)</span>
-          <input id="personal-display-name" autoComplete="nickname" maxLength={80} value={value.displayName} onChange={event => onChange({ displayName: event.target.value })} />
+          <input id="personal-display-name" autoComplete="nickname" maxLength={80} placeholder="Your name" aria-describedby="personal-display-name-help" value={value.displayName} onChange={event => onChange({ displayName: event.target.value })} />
+          <span id="personal-display-name-help" className="personal-hint">Shown in the Home welcome. Leave blank to use the default greeting.</span>
         </label>
         <div>
           <label htmlFor="personal-avatar">Avatar <span className="personal-hint">(optional)</span></label>

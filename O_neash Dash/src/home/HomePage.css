@@ -3,7 +3,11 @@
 .personal-home-header { flex-wrap: wrap; gap: 12px; min-width: 0; }
 .personal-home-feeds, .personal-home-launcher { min-width: 0; max-width: 100%; }
 .personal-home-quote { max-width: calc(100% - 48px); }
+.personal-home-edit-profile { margin-top: 8px; padding: 2px 0; background: transparent; border: 0; color: #00c4a7; font: inherit; font-size: .9rem; cursor: pointer; }
+.personal-home-edit-profile:hover { text-decoration: underline; }
+.personal-home-edit-profile:focus-visible { outline: 2px solid #00c4a7; outline-offset: 4px; border-radius: 2px; }
 @media (max-width: 1350px) {
+  .personal-home-launcher { --launcher-category-gap: 1.2rem; --launcher-active-size: 1.8rem; --launcher-inactive-size: 1.2rem; --launcher-name-width: 140px; }
   .personal-home { display: block !important; padding: 0 48px !important; }
   .personal-home-grid { grid-template-columns: minmax(0, 1fr) !important; row-gap: 28px !important; padding-bottom: 32px; }
   .personal-home-header { grid-column: 1 !important; }

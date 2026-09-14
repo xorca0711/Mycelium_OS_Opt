@@ -4,6 +4,8 @@ import { ArcVisibility } from './sections/ArcVisibility';
 import { Appearance } from './sections/Appearance';
 import { PersonalSettings } from './sections/PersonalSettings';
 import { DataSettings } from './sections/DataSettings';
+import usePluginStore from '@/store/usePluginStore';
+import { usePersonalSettingsStore } from '@/store/usePersonalSettingsStore';
 
 type Section = 'personal' | 'widgets' | 'general' | 'appearance' | 'data';
 
@@ -20,6 +22,19 @@ function SettingsPlugin() {
   const [draftPending, setDraftPending] = useState(false);
   const active = SECTIONS[activeIdx].id;
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const profileEditRequested = usePluginStore(state => state.profileEditRequested);
+  const personalReady = usePersonalSettingsStore(state => state.loaded && !state.error);
+
+  useEffect(() => {
+    if (profileEditRequested) setActiveIdx(0);
+  }, [profileEditRequested]);
+
+  useEffect(() => {
+    if (!profileEditRequested || active !== 'personal' || !personalReady) return;
+    const field = document.getElementById('personal-display-name');
+    field?.focus();
+    if (field && document.activeElement === field) usePluginStore.getState().clearProfileEditRequest();
+  }, [profileEditRequested, active, personalReady]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

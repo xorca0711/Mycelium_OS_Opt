@@ -5,8 +5,9 @@ use super::{backup, files::{DATABASE, MEDIA, relative, no_link}};
 
 enum MediaField { NoteDocument, ImageList, Path }
 
-const COLUMNS: [(&str, &str, MediaField); 7] = [
+const COLUMNS: [(&str, &str, MediaField); 8] = [
     ("notes", "content_json", MediaField::NoteDocument), ("journal_entries", "images", MediaField::ImageList),
+    ("wardrobe_wiki_entries", "content_json", MediaField::NoteDocument),
     ("wardrobe_wiki_entries", "cover_image", MediaField::Path), ("wardrobe_wiki_gallery_images", "image_path", MediaField::Path),
     ("wardrobe_items", "image_path", MediaField::Path), ("wardrobe_ootd_logs", "photo_path", MediaField::Path), ("filmneg_photos", "image_path", MediaField::Path),
 ];

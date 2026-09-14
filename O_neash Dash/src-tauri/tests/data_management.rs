@@ -108,6 +108,65 @@ fn restore_preserves_imported_json_and_literal_paths_while_relinking_image_field
 }
 
 #[test]
+fn restore_relinks_inline_wardrobe_images_and_preserves_literal_paths() {
+    tauri::async_runtime::block_on(async {
+        let fixture = Fixture::new(); let source = fixture.folder("source"); let active = fixture.folder("active"); let output = fixture.folder("output");
+        synthetic_data(&source, "Transferred").await; synthetic_data(&active, "Original").await;
+        let image = source.join("wardrobe-images/inline.png");
+        fs::write(&image, b"synthetic wardrobe image").unwrap();
+        let literal = source.join("wardrobe-images/literal-not-a-file.png").to_string_lossy().into_owned();
+        let document = json!({"type":"doc","content":[
+            {"type":"paragraph","content":[{"type":"text","text":literal}]},
+            {"type":"blockquote","content":[{"type":"image","attrs":{"src":image.to_string_lossy(),"alt":literal}}]}
+        ]});
+        let literal_only = format!(r#"{{ "type":"doc", "content":[{{"type":"paragraph","content":[{{"type":"text","text":{}}}]}}] }}"#,
+            serde_json::to_string(&literal).unwrap());
+        let mut db = backup::connection(&source.join(files::DATABASE), false).await.unwrap();
+        sqlx::query("INSERT INTO wardrobe_wiki_entries(id,category,title,content_json) VALUES ('inline','genre','Inline image',?),('literal','genre','Literal path',?)")
+            .bind(document.to_string()).bind(&literal_only).execute(&mut db).await.unwrap();
+        db.close().await.unwrap();
+        let saved = backup::create(&source, &output, BTreeMap::new()).await.unwrap();
+        restore::stage(&active, Path::new(&saved.path)).await.unwrap();
+        restore::apply_pending(&active).await.unwrap();
+        let mut db = backup::connection(&active.join(files::DATABASE), true).await.unwrap();
+        let restored: String = sqlx::query_scalar("SELECT content_json FROM wardrobe_wiki_entries WHERE id='inline'")
+            .fetch_one(&mut db).await.unwrap();
+        let restored: serde_json::Value = serde_json::from_str(&restored).unwrap();
+        assert_eq!(fs::canonicalize(restored["content"][1]["content"][0]["attrs"]["src"].as_str().unwrap()).unwrap(),
+            fs::canonicalize(active.join("wardrobe-images/inline.png")).unwrap());
+        assert_eq!(restored["content"][0]["content"][0]["text"], literal);
+        assert_eq!(restored["content"][1]["content"][0]["attrs"]["alt"], literal);
+        let unchanged: String = sqlx::query_scalar("SELECT content_json FROM wardrobe_wiki_entries WHERE id='literal'")
+            .fetch_one(&mut db).await.unwrap();
+        assert_eq!(unchanged.as_bytes(), literal_only.as_bytes());
+        db.close().await.unwrap();
+    });
+}
+
+#[test]
+fn backup_rejects_missing_inline_wardrobe_images_even_with_matching_inventory() {
+    tauri::async_runtime::block_on(async {
+        let fixture = Fixture::new(); let source = fixture.folder("source"); let output = fixture.folder("output");
+        synthetic_data(&source, "Data").await;
+        let image = source.join("wardrobe-images/inline.png");
+        fs::write(&image, b"synthetic wardrobe image").unwrap();
+        let document = json!({"type":"doc","content":[{"type":"image","attrs":{"src":image.to_string_lossy()}}]}).to_string();
+        let mut db = backup::connection(&source.join(files::DATABASE), false).await.unwrap();
+        sqlx::query("INSERT INTO wardrobe_wiki_entries(id,category,title,content_json) VALUES ('inline','genre','Inline image',?)")
+            .bind(document).execute(&mut db).await.unwrap();
+        db.close().await.unwrap();
+        let saved = backup::create(&source, &output, BTreeMap::new()).await.unwrap(); let root = Path::new(&saved.path);
+        let manifest = backup::validate(root).await.unwrap();
+        fs::remove_file(root.join("wardrobe-images/inline.png")).unwrap();
+        // Keep checksums valid so rejection must detect the document's missing reference.
+        backup::refresh_manifest(root, manifest, &source, migrations::CURRENT_VERSION).unwrap();
+        assert!(backup::validate(root).await.is_err());
+        fs::remove_file(image).unwrap();
+        assert!(backup::create(&source, &output, BTreeMap::new()).await.is_err());
+    });
+}
+
+#[test]
 fn validation_rejects_traversal_future_schema_corruption_and_missing_referenced_media() {
     tauri::async_runtime::block_on(async {
         let fixture = Fixture::new(); let data = fixture.folder("data"); let output = fixture.folder("output");

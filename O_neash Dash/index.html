@@ -2,13 +2,20 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="icon" type="image/png" href="/icons/character/cyphel_teal_noeyes.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tauri + React</title>
+    <title>Mycelium</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=VT323&family=SUSE:wght@400;700&family=Gowun+Dodum&family=Odibee+Sans&family=PT+Sans:ital,wght@0,400;0,700;1,400&family=Inconsolata:wght@400;700&family=IBM+Plex+Mono+KR:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=SUSE:wght@400;700&family=Gowun+Dodum&family=PT+Sans:ital,wght@0,400;0,700;1,400&family=Inconsolata:wght@400;700&family=IBM+Plex+Mono+KR:wght@400;700&display=swap" rel="stylesheet" />
       <style>
+        @font-face {
+          font-family: 'Odibee Sans';
+          src: url('/fonts/OdibeeSans-Regular.ttf') format('truetype');
+          font-weight: 400;
+          font-style: normal;
+          font-display: swap;
+        }
         @font-face {
           font-family: 'KOTRAGothic';
           src: url('/fonts/KOTRA_GOTHIC.otf') format('opentype');
@@ -17,7 +24,12 @@
         }
 
         #root { visibility: hidden; }
-        #root.app-enter { visibility: visible; }
+        #root.app-enter { visibility: visible; animation: app-reveal .6s cubic-bezier(.22,1,.36,1) backwards; }
+        @keyframes app-reveal {
+          from { opacity: 0; transform: translateY(10px) scale(.97); }
+          to { opacity: 1; transform: none; }
+        }
+        #splash-screen.splash-exit { pointer-events: none; opacity: 0; transition: opacity .35s ease; }
 
         #splash-screen {
           position: fixed;
@@ -102,6 +114,11 @@
         @keyframes splash-load {
           from { transform: translateX(-100%); }
           to   { transform: translateX(250%); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          #root.app-enter, .splash-eye::after, .splash-bar-fill { animation: none; }
+          #splash-screen.splash-exit { transition: none; }
+          .splash-eye::after { transform: scaleY(1); }
         }
       </style>
   </head>

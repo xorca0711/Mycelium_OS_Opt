@@ -29,7 +29,7 @@ interface FontFaceSpec {
 }
 
 const FONT_FACE_SPECS: FontFaceSpec[] = [
-  { role: 'main', match: 'VT323',     family: 'VT323',     src: "local('VT323')",                                     weight: 'normal', baseSizeAdjust: 100 },
+  { role: 'main', match: 'VT323',     family: 'VT323',     src: "url('/fonts/VT323-Regular.ttf') format('truetype')", weight: 'normal', baseSizeAdjust: 100 },
   { role: 'main', match: 'Tamzen',    family: 'Tamzen',     src: "url('/fonts/Tamzen10x20r.ttf') format('truetype')", weight: 'normal', baseSizeAdjust: 100 },
   { role: 'main', match: 'Tamzen',    family: 'Tamzen',     src: "url('/fonts/Tamzen10x20b.ttf') format('truetype')", weight: 'bold',   baseSizeAdjust: 100 },
   { role: 'kr',   match: 'HBIOS-SYS', family: 'HBIOS-SYS',  src: "url('/fonts/HBIOS-SYS.woff2') format('woff2')",     weight: 'normal', baseSizeAdjust: 78 },

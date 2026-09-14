@@ -79,8 +79,11 @@ function App() {
 
   useEffect(() => {
     if (!dbReady && !error) return;
-    document.getElementById("splash-screen")?.remove();
+    const splash = document.getElementById("splash-screen");
+    splash?.classList.add("splash-exit");
     document.getElementById("root")?.classList.add("app-enter");
+    const timer = window.setTimeout(() => splash?.remove(), 400);
+    return () => window.clearTimeout(timer);
   }, [dbReady, error]);
 
   useEffect(() => {

@@ -10,7 +10,7 @@ const app = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.resolve(app, '../docs/architecture');
 fs.mkdirSync(out, { recursive: true });
 const read = p => fs.readFileSync(path.join(app, p), 'utf8');
-const remote = 'https://github.com/xorca0711/Mycelium_OS_Opt/blob/codex/local-setup/O_neash%20Dash/';
+const remote = 'https://github.com/xorca0711/Mycelium_OS_Opt/blob/main/O_neash%20Dash/';
 const url = p => {
   if (!p || !fs.existsSync(path.join(app, p))) throw new Error(`Missing linked source: ${p}`);
   return remote + p.split('/').map(encodeURIComponent).join('/');
@@ -222,7 +222,7 @@ for (const page of pages) {
 fs.writeFileSync(path.join(out,'mycelium-architecture.drawio'),xml+'</mxfile>');
 fs.writeFileSync(path.join(out,'schema-inventory.json'), JSON.stringify({ schemaVersion:version, provenance:'Source-only fresh-install schema; no personal database opened', tables, logicalJoins:logical },null,2)+'\n');
 
-let inventory = `# SQLite schema inventory\n\nGenerated from source schema and additive migrations through version ${version}. **${tables.length} application tables, one SQLite file.** Internal SQLite tables (for example sqlite_sequence) are excluded. No personal database was inspected.\n\n`;
+let inventory = `# SQLite schema inventory\n\nGenerated from source schema and additive migrations through version ${version}. **${tables.length} tables including the migration ledger, one SQLite file.** Internal SQLite tables (for example sqlite_sequence) are excluded. No personal database was inspected.\n\n`;
 inventory += 'Fresh-install constraints are shown. Existing databases retain historical columns/tables; adding an old missing column does not recreate fresh-schema foreign keys. `routine_occurrences` is preserved when present, but not created by the current schema. `note_task_links` is referenced by legacy planner code but is not declared by the current schema; its existence and constraints are not assumed. The version ledger is `mycelium_schema_migrations`, not a `schema_version` table.\n\n';
 for(const t of tables){
   inventory+=`## ${t.name}\n\n[Schema source](${url(t.source)})\n\n| Column | SQLite type | Key | Required | Default |\n|---|---|---|---|---|\n`;

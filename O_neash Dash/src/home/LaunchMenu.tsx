@@ -294,8 +294,8 @@ export function LaunchMenu() {
     const handler = (e: KeyboardEvent) => {
       if (floatingOpen) return;
       if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        e.target instanceof Element &&
+        e.target.closest('button, a, input, textarea, select, [contenteditable="true"], [role="button"]')
       )
         return;
 
@@ -351,7 +351,7 @@ export function LaunchMenu() {
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "1.2rem",
+          gap: "var(--launcher-category-gap, 2.4rem)",
           flexWrap: "wrap",
           paddingBottom: "0.6rem",
           borderBottom: "1px solid rgba(255,255,255,0.07)",
@@ -403,7 +403,7 @@ export function LaunchMenu() {
               )}
               <span
                 style={{
-                  fontSize: active ? "1.8rem" : "1.2rem",
+                  fontSize: active ? "var(--launcher-active-size, 2.4rem)" : "var(--launcher-inactive-size, 1.5rem)",
                   color: active ? "#fff" : "rgba(255,255,255,0.28)",
                   textTransform: active ? "uppercase" : "lowercase",
                   letterSpacing: active ? "3px" : "1.5px",
@@ -495,7 +495,7 @@ export function LaunchMenu() {
                   style={{
                     fontSize: "1.2rem",
                     letterSpacing: "1px",
-                    minWidth: 140,
+                    minWidth: "var(--launcher-name-width, 190px)",
                     textAlign: "left",
                     color: sel ? "rgba(0,0,0,0.85)" : "rgba(255,255,255,0.55)",
                     transition: "color 0.1s",

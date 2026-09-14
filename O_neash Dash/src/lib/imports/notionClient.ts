@@ -126,9 +126,12 @@ function plain(value: unknown): string {
   }
   return value === null || value === undefined ? '' : String(value);
 }
+function richText(value: unknown): string {
+  return Array.isArray(value) ? value.map(plain).join('') : plain(value);
+}
 export function pageTitle(page: NotionPage): string {
   for (const value of Object.values(page.properties ?? {})) {
-    if (value && typeof value === 'object' && 'type' in value && value.type === 'title' && 'title' in value) return plain(value.title) || 'Untitled';
+    if (value && typeof value === 'object' && 'type' in value && value.type === 'title' && 'title' in value) return richText(value.title) || 'Untitled';
   }
   return 'Untitled';
 }
@@ -190,7 +193,9 @@ export async function fetchNotion(options: NotionOptions, progress: ImportProgre
     const properties = Object.entries(page.properties ?? {}).map(([name, value]) => {
       const object = value && typeof value === 'object' ? value as Record<string, unknown> : {};
       if (object.has_more) warnings.push(`“${pageTitle(page)}”: property “${name}” has additional values; only the available property summary is copied.`);
-      return `${name}: ${typeof object.type === 'string' ? plain(object[object.type]) : plain(value)}`;
+      const text = object.type === 'title' || object.type === 'rich_text' ? richText(object[object.type])
+        : typeof object.type === 'string' ? plain(object[object.type]) : plain(value);
+      return `${name}: ${text}`;
     }).join('\n');
     const content = `${markdown.markdown}\n\n---\nNotion source: https://www.notion.so/${externalId.replace(/-/g, '')}\n\nProperties (source snapshot):\n${properties}`;
     addPayload({ externalId, title: pageTitle(page), content, updatedAt: page.last_edited_time || null });

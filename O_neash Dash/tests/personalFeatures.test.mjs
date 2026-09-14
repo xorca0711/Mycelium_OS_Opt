@@ -11,6 +11,7 @@ registerHooks({
   resolve(specifier, context, nextResolve) {
     if (context.parentURL?.includes('/src/')) {
       if (specifier.includes('usePersonalSettingsStore')) return { url: 'features-test:settings', shortCircuit: true };
+      if (specifier === '../plugins/registry') return { url: 'features-test:plugins', shortCircuit: true };
       if (specifier === '@tauri-apps/plugin-http') return { url: 'features-test:http', shortCircuit: true };
       if (specifier.endsWith('/personalFeatures')) return nextResolve(new URL(specifier + '.tsx', context.parentURL).href, context);
       if (specifier.endsWith('/personalFeaturePolicy')) return nextResolve(new URL(specifier + '.ts', context.parentURL).href, context);
@@ -22,6 +23,8 @@ registerHooks({
       source: 'export const usePersonalSettingsStore = selector => selector(globalThis.__featureState); usePersonalSettingsStore.getState = () => globalThis.__featureState;' };
     if (url === 'features-test:http') return { format: 'module', shortCircuit: true,
       source: 'export const fetch = (...args) => globalThis.__featureFetch(...args);' };
+    if (url === 'features-test:plugins') return { format: 'module', shortCircuit: true,
+      source: 'export const plugins = [{ id: "notes" }, { id: "settings" }];' };
     if (url.endsWith('/personalFeatures.tsx')) return { format: 'module', shortCircuit: true,
       source: ts.transpileModule(readFileSync(new URL(url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX } }).outputText };
     return nextLoad(url, context);
@@ -30,6 +33,7 @@ registerHooks({
 const { FeedGate, canFetchFeed } = await import('../src/lib/personalFeatures.tsx');
 const { fetchRandomQuote } = await import('../src/home/quote/quoteApi.ts');
 const { geocodeCity, fetchCurrentWeather } = await import('../src/home/weather/weatherApi.ts');
+const { default: usePluginStore } = await import('../src/store/usePluginStore.ts');
 
 function state() {
   return { loaded: true, error: null, settings: {
@@ -46,6 +50,34 @@ test('hidden modules disappear from categories; Settings and Home survive malfor
   assert.equal(pluginEnabled('planner', [], false), false);
   assert.equal(pluginEnabled('settings', disabled, false), true);
   assert.equal(pluginEnabled(null, disabled, false), true);
+});
+
+test('Home profile editing requests Settings focus even if Settings is already open, without changing saved preferences', () => {
+  globalThis.__featureState = state();
+  const settings = globalThis.__featureState.settings;
+  const before = structuredClone(settings);
+  usePluginStore.getState().setActivePlugin('settings');
+  usePluginStore.getState().openProfileSettings();
+  assert.equal(usePluginStore.getState().activePlugin, 'settings');
+  assert.equal(usePluginStore.getState().profileEditRequested, true);
+  usePluginStore.getState().clearProfileEditRequest();
+  assert.equal(usePluginStore.getState().activePlugin, 'settings');
+  assert.equal(usePluginStore.getState().profileEditRequested, false);
+  usePluginStore.getState().setActivePlugin(null);
+  usePluginStore.getState().openProfileSettings();
+  assert.equal(usePluginStore.getState().activePlugin, 'settings');
+  assert.equal(usePluginStore.getState().profileEditRequested, true, 'a later Home visit can request focus again');
+  assert.equal(globalThis.__featureState.settings, settings);
+  assert.deepEqual(settings, before);
+});
+
+test('leaving before profile focus cancels the request so an ordinary Settings visit does not steal focus', () => {
+  globalThis.__featureState = state();
+  usePluginStore.getState().openProfileSettings();
+  usePluginStore.getState().setActivePlugin(null);
+  assert.equal(usePluginStore.getState().profileEditRequested, false);
+  usePluginStore.getState().setActivePlugin('settings');
+  assert.equal(usePluginStore.getState().profileEditRequested, false);
 });
 
 test('disabled analytics cannot participate through a stale combined selection', () => {

@@ -74,3 +74,38 @@ test('Notion skips markdown requests for unchanged copies and refuses partial pa
   const partial = await fetchNotion(options, progress, async url => Response.json(url.endsWith('/markdown') ? {markdown:'partial',truncated:true,unknown_block_ids:[]} : page), new Map());
   assert.equal(partial.payloads.length,0); assert.match(partial.warnings[0], /incomplete/);
 });
+
+test('Notion imports concatenate rich-text runs while keeping list property separators', async () => {
+  const id = '12345678-abcd-1234-abcd-123456789abc';
+  const page = {
+    id, last_edited_time: '2026-09-14', url: '',
+    properties: {
+      Name: { type: 'title', title: [
+        { type: 'text', plain_text: 'Quarterly ', text: { content: 'Quarterly ' } },
+        { type: 'text', plain_text: 'report', text: { content: 'report' }, annotations: { bold: true } },
+      ] },
+      Summary: { type: 'rich_text', rich_text: [
+        { type: 'text', plain_text: 'Read ', text: { content: 'Read ' } },
+        { type: 'text', plain_text: 'this', text: { content: 'this' }, annotations: { italic: true } },
+        { type: 'text', plain_text: ' first.\n한글 😀', text: { content: ' first.\n한글 😀' } },
+      ] },
+      Tags: { type: 'multi_select', multi_select: [{ name: 'Work' }, { name: 'Research' }] },
+      People: { type: 'people', people: [{ id: 'person-1', name: 'Ada' }, { id: 'person-2', name: 'Grace' }] },
+      Related: { type: 'relation', relation: [{ id: 'related-1' }, { id: 'related-2' }] },
+    },
+  };
+  const result = await fetchNotion(
+    { token: 'synthetic-token', source: id, type: 'page', limit: 1 },
+    { signal: new AbortController().signal, onProgress: () => {} },
+    async url => Response.json(url.endsWith('/markdown') ? { markdown: 'Body', truncated: false, unknown_block_ids: [] } : page),
+    new Map(),
+  );
+  assert.deepEqual(result.warnings, []);
+  assert.equal(result.payloads.length, 1);
+  assert.equal(result.payloads[0].title, 'Quarterly report');
+  assert.equal(result.payloads[0].content, [
+    'Body', '', '---', `Notion source: https://www.notion.so/${id.replaceAll('-', '')}`, '',
+    'Properties (source snapshot):', 'Name: Quarterly report', 'Summary: Read this first.\n한글 😀',
+    'Tags: Work, Research', 'People: Ada, Grace', 'Related: {"id":"related-1"}, {"id":"related-2"}',
+  ].join('\n'));
+});

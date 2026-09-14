@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-09-14. Working branch: `codex/local-setup`.
+Updated: 2026-09-14. Integration branch: `main`; source/review history: [PR #2](https://github.com/xorca0711/Mycelium_OS_Opt/pull/2).
 
 ## Current checkpoint
 
@@ -28,6 +28,7 @@ Commit `e6e6a4f` preserved the verified step 5 changes and architecture gallery.
 | Notion and file imports | Explicit preview of selected Notion pages/database rows or mapped CSV/JSON records into Notes; source identity/history, atomic note/provenance writes, incremental body-download skips, local-edit/archive/delete preservation |
 | Import boundaries | Memory-only token; no startup Notion requests; sequential pacing, retries and cancellation; Markdown/properties stored as editable text, relations remain IDs; no automatic task mapping, media download or two-way sync |
 | Personal settings | Optional name/avatar, home clock timezone, supported regional formats, Planner week start, seven-day capacity, focus/break preferences, module/feed visibility and Analytics data sources |
+| Home profile and visual portability | Edit profile opens and focuses Display name; bundled VT323/Odibee Sans fonts, original wide-window launcher sizing and a short readiness-triggered reveal that respects reduced motion |
 | Preference history | Validated JSON v1 in SQLite; each explicit save atomically updates the current profile and appends a revision; existing activity records remain intact |
 | Personal data controls | Historical sleep-target updates, weather-location clearing, links to habit/project/subject editors and native-selected storage paths |
 | Personal planning | Suggestions account for daily availability and breaks; rest days suppress extra suggestions; calendars follow the selected week start |
@@ -36,7 +37,7 @@ Commit `e6e6a4f` preserved the verified step 5 changes and architecture gallery.
 | Analytics | Local-calendar boundaries, shared observation times, bounded waking windows, calendar-based IRF lags |
 | Startup/feeds | Removed forced splash delay, lazy plugins, unmounted hidden widget panel, cached/coalesced feed requests with stale-data retention |
 | Windows PDF | Unsupported export disabled and labelled unavailable |
-| Customization | Editable 16-page diagram, SVG gallery, fresh-schema inventory (51 application tables / 46 declared foreign keys), source-linked customization/data guides |
+| Customization | Editable 16-page diagram, SVG gallery, fresh-schema inventory (51 tables including the migration ledger / 46 declared foreign keys), source-linked customization/data guides |
 
 ## Verification
 
@@ -48,6 +49,11 @@ Commit `e6e6a4f` preserved the verified step 5 changes and architecture gallery.
   initialized through migration 6 with 51 tables including the migration ledger,
   `integrity_check = ok`, zero foreign-key violations and no imported records.
   This verifies native startup and database initialization, not a full native UI workflow.
+- The final reviewed ARM64 installer was installed again with the app closed, exit
+  code 0. Its installed executable matches the rebuilt executable apart from Tauri's
+  documented-in-source three-byte bundle marker (`UNK` becomes NSIS `NSS`). The
+  installed PE architecture is ARM64. This update did not change personal records
+  or repeat the earlier standalone launch check.
 - The x64 NSIS release installer also built successfully. Its application executable
   has x64 PE architecture (`0x8664`) and uses the generic x64 target with no custom
   CPU flags. Both executables' static imports reference Windows system libraries.
@@ -57,24 +63,42 @@ Commit `e6e6a4f` preserved the verified step 5 changes and architecture gallery.
   the existing development launcher can reopen it with Vite.
 - TypeScript checks and Vite production build passed. Vite still warns about chunks
   larger than 500 kB; the rich-text editor and shared startup code can be split further.
-- All 84 JavaScript regression tests passed. They cover real in-memory SQLite rollback, task query
+- All 87 JavaScript regression tests passed. They cover real in-memory SQLite rollback, task query
   counts, session accounting, time-zone boundaries, notes save races, stable links,
   save-before-close logic, feed caching, analytics windows, concurrent session actions,
   settings validation/history/rollback, avatar bounds, feature gates, weekly capacity,
   week ordering, deduplicated capacity reservations for scheduled/overdue/session work,
   weather-location notifications, CSV/JSON parsing, Notion request cancellation/timeouts/retry cleanup,
-  unchanged-page body skips, import identity/conflicts/atomic rollback, memo flushing,
+  unchanged-page body skips, adjacent Notion rich-text runs and list properties,
+  import identity/conflicts/atomic rollback, memo flushing,
   preference handoff rollback and measured before/after query plans on synthetic rows.
 - Nine native SQLite migration tests passed with `cargo test --offline --locked --lib
   database_tests` from `O_neash Dash/src-tauri`. They cover fresh/legacy upgrade,
   repeat migration, interruption rollback, related-data preservation, batch rollback,
   cascade behavior, development-directory isolation, settings migration and v6 provenance rollback/preservation.
-- Eleven native data-management tests pass against temporary fixtures: database/media checksums,
+- Thirteen native data-management tests pass against temporary fixtures: database/media checksums,
   required schema tables, staged transfer and media relinking, interrupted rename recovery,
   atomic sidecar publication, rollback receipts, environment locks, browse/export validation,
   pool reopening after backup failure, and byte-preserving restore of imported notes and
-  literal path text. Together with the migration suite, 20 native tests pass. No personal
+  literal path text, inline wardrobe wiki image relocation and missing-image rejection.
+  Together with the migration suite, 22 native tests pass. No personal
   data was used in these tests.
+- The final review of the native data layer, Notes/imports, and personal settings/Planner/
+  Analytics found two concrete issues, both fixed before integration: inline wardrobe
+  wiki images were omitted from restore relinking, and formatted Notion titles/rich-text
+  properties gained unwanted commas. New synthetic tests failed on the old code and
+  pass with the fixes; the other reviewed areas had no blocking findings.
+- The default `cargo test --offline --locked` command also passes all 22 native tests.
+  Cargo test discovery was corrected to avoid compiling private unit-test modules
+  as standalone integration-test crates.
+- Home profile navigation was checked in an isolated browser using synthetic data:
+  Enter activates Edit profile, Personal is selected, Display name receives focus,
+  and an explicit save updates the Home greeting. A request from the mounted Data
+  tab also selects Personal and focuses the field. Home was inspected at 1100 × 720
+  and 800 × 600, with wide layout geometry checked at 1600 × 900. The reveal finishes
+  at opacity 1 with no transform or retained forwards animation fill. No personal
+  name was changed. See [release notes](release-notes.md) for the source comparison
+  and remaining Mac/hardware colour-comparison limits.
 - An isolated Data component preview at 800 × 600 verified table rendering, CSV field mapping,
   explicit preview and import completion feedback. Database operations were mocked; real
   import transactions are covered by the SQLite tests. This does not verify a live Notion account.
@@ -127,9 +151,9 @@ For standalone daily use, open **Mycelium** from the Start menu or desktop short
 The installed executable is `%LOCALAPPDATA%/Mycelium/Mycelium.exe`, and its database
 is `Documents/O-neash-data/oneash-DB.db`. No development records were copied into it.
 The ARM64 installer is `O_neash Dash/src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/Mycelium_0.1.0_arm64-setup.exe`
-(11,206,749 bytes; SHA-256 `3E6F9C3C9BBFA8B89923DF5C0EAF80507E8D312C8BFD4DE7F455426C8091D06F`).
+(11,268,263 bytes; SHA-256 `31706D6683BBED055D2FB16D8E25A357BDBFC23A5B59438063AA6D982AE9BCFE`).
 The Intel/AMD x64 installer is `O_neash Dash/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/Mycelium_0.1.0_x64-setup.exe`
-(11,931,662 bytes; SHA-256 `FBCAA46785BE3E3515EE437D8810AE43A181A11C42344263B65BFEA1A1229297`).
+(11,990,723 bytes; SHA-256 `E39EA25225F0124121AF09522C771673B9085415EADBED18F767058CDEB4FAF7`).
 These local installers are ignored build outputs, not uploaded GitHub release assets.
 
 For development, from a new terminal in `O_neash Dash/`:
@@ -156,7 +180,8 @@ not install dependencies or rebuild Rust. See the [launch and navigation manual]
 See the [diagram gallery](architecture/previews.md),
 [customization map](architecture/customization-map.md), and
 [raw-data/connection guide](architecture/local-data-connections.md).
-Open **Settings → Personal**, edit the desired fields and choose **Save personal settings**.
+Choose **Edit profile** beside the Home greeting, or open **Settings → Personal**,
+edit the desired fields and choose **Save personal settings**.
 Defaults use a blank name, the existing mascot, system regional settings and all modules/feeds
 enabled. The first load inherits legacy daily capacity/focus hours when available.
 The timezone setting affects the home clock; task/log dates remain device-local.
@@ -184,5 +209,6 @@ anyone, including the original author, but do not modify the original repository
 [PR #1](https://github.com/xorca0711/Mycelium_OS_Opt/pull/1) was merged into this
 repository's own `main` at `5bfb3e8`. It was not a submission to the original author.
 No pull request from `xorca0711:codex/local-setup` exists against the original
-repository as of this checkpoint. New work is preserved on `codex/local-setup`;
-merging this checkpoint into `main` is a separate action.
+repository as of this checkpoint. [PR #2](https://github.com/xorca0711/Mycelium_OS_Opt/pull/2)
+tracks the reviewed integration of this checkpoint from `codex/local-setup` into this
+repository's own `main`; its GitHub page records the current review and merge state.
