@@ -5,6 +5,7 @@ use serde_json::Value;
 use sqlx::{sqlite::SqliteConnectOptions, Connection, SqliteConnection, SqlitePool};
 use tauri::{AppHandle, Manager, State};
 use tauri_plugin_sql::{DbInstances, DbPool};
+use tauri_plugin_fs::FsExt;
 
 pub(crate) mod migrations;
 mod wardrobe;
@@ -21,12 +22,43 @@ pub(crate) fn data_directory(documents: &Path, development: bool) -> std::path::
     documents.join(if development { "O-neash-data-dev" } else { "O-neash-data" })
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DataDirectoryConfig { root: std::path::PathBuf }
+
+pub(crate) fn configured_data_directory(documents: &Path, config: &Path, development: bool) -> Result<std::path::PathBuf, String> {
+    let bytes = match std::fs::read(config.join("data-location.json")) {
+        Ok(bytes) => bytes,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(data_directory(documents, development)),
+        Err(error) => return Err(format!("Cannot read data-location.json: {error}")),
+    };
+    let settings: DataDirectoryConfig = serde_json::from_slice(&bytes)
+        .map_err(|error| format!("Invalid data-location.json: {error}"))?;
+    crate::data_management::files::checked_directory(&settings.root)
+        .map_err(|error| format!("Configured data root is unavailable or invalid: {error}"))?;
+    let directory = data_directory(&settings.root, development);
+    if directory.exists() {
+        crate::data_management::files::checked_directory(&directory)?;
+    }
+    Ok(directory)
+}
+
+pub(crate) fn configure_data_location(app: &AppHandle) -> Result<(), String> {
+    let development = cfg!(debug_assertions);
+    let directory = configured_data_directory(
+        &app.path().document_dir().map_err(|e| e.to_string())?,
+        &app.path().app_config_dir().map_err(|e| e.to_string())?, development,
+    )?;
+    app.fs_scope().allow_directory(&directory, true).map_err(|e| e.to_string())?;
+    app.asset_protocol_scope().allow_directory(&directory, true).map_err(|e| e.to_string())?;
+    let database_url = format!("sqlite:{}", directory.join("oneash-DB.db").to_string_lossy());
+    app.manage(DataLocation { directory: directory.to_string_lossy().into_owned(), database_url, development });
+    Ok(())
+}
+
 #[tauri::command]
 pub fn get_data_location(app: AppHandle) -> Result<DataLocation, String> {
-    let development = cfg!(debug_assertions);
-    let directory = data_directory(&app.path().document_dir().map_err(|e| e.to_string())?, development);
-    let database_url = format!("sqlite:{}", directory.join("oneash-DB.db").to_string_lossy());
-    Ok(DataLocation { directory: directory.to_string_lossy().into_owned(), database_url, development })
+    Ok(app.state::<DataLocation>().inner().clone())
 }
 
 #[tauri::command]

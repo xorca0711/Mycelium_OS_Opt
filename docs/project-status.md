@@ -22,7 +22,7 @@ Commit `e6e6a4f` preserved the verified step 5 changes and architecture gallery.
 |---|---|
 | Window behavior | Centered, resizable 1100 × 720 window with native title bar; minimum 800 × 600; fullscreen disabled |
 | Windows distribution | Separate native ARM64 and Intel/AMD x64 installers; per-user installation with Start menu/desktop shortcuts and WebView2 bootstrapper; no Vite or development tools required after installation |
-| Development storage | Native-selected `Documents/O-neash-data-dev`; release retains `Documents/O-neash-data` |
+| Local storage | Configured parent `X:/GitHub/Mycelium-data`: separate `O-neash-data-dev` and `O-neash-data` environments; Documents remains the unconfigured default |
 | Database reliability | Versioned migration ledger through v6, legacy routine/wardrobe preservation, native atomic write batches, corrected cascade trigger, six query-backed indexes and environment instance locks |
 | Data management | Settings → Data: read-only paginated table browsing, whole-table CSV/JSON exports, validated database/media/preference backups and staged restore with rollback-folder retention |
 | Notion and file imports | Explicit preview of selected Notion pages/database rows or mapped CSV/JSON records into Notes; source identity/history, atomic note/provenance writes, incremental body-download skips, local-edit/archive/delete preservation |
@@ -141,7 +141,7 @@ substitute for those checks. macOS/Linux runtime behavior has not been tested he
 
 ## Local data and resume instructions
 
-The development database is `Documents/O-neash-data-dev/oneash-DB.db`, with images
+The development database is `X:/GitHub/Mycelium-data/O-neash-data-dev/oneash-DB.db`, with images
 beneath that directory. `[TEST]` records are verification samples. No personal
 history was imported. Git preserves source, lockfiles, tests, diagrams and this
 status record; it does not preserve a running process, local databases/media,
@@ -149,7 +149,15 @@ WebView preferences, dependencies or build output.
 
 For standalone daily use, open **Mycelium** from the Start menu or desktop shortcut.
 The installed executable is `%LOCALAPPDATA%/Mycelium/Mycelium.exe`, and its database
-is `Documents/O-neash-data/oneash-DB.db`. No development records were copied into it.
+is `X:/GitHub/Mycelium-data/O-neash-data/oneash-DB.db`. No development records were copied into it.
+Both environments were relocated on 2026-10-19 and grouped with their backups on
+2026-10-21. `%APPDATA%/com.oneash.oneash-dash/data-location.json` now contains
+`{"root":"X:/GitHub/Mycelium-data"}`.
+The installed ARM64 app and cached development executable were rebuilt. Native
+checks verified both databases, backups, file access, and the development note image;
+87 frontend and 23 native tests passed. Originals and the prior executable are under
+`X:/GitHub/Mycelium-data/Mycelium-data-migration-backup-20261019`. Installer hashes below describe
+the earlier September builds; the local ARM64 installer has since been rebuilt.
 The ARM64 installer is `O_neash Dash/src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/Mycelium_0.1.0_arm64-setup.exe`
 (11,268,263 bytes; SHA-256 `31706D6683BBED055D2FB16D8E25A357BDBFC23A5B59438063AA6D982AE9BCFE`).
 The Intel/AMD x64 installer is `O_neash Dash/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/Mycelium_0.1.0_x64-setup.exe`

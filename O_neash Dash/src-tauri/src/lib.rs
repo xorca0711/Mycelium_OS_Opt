@@ -121,6 +121,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
+        .setup(|app| {
+            database::configure_data_location(app.handle()).map_err(std::io::Error::other)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             export_pdf_native,
             supports_pdf_export,

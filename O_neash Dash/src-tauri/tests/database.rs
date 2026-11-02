@@ -189,6 +189,38 @@ fn development_and_release_directories_are_distinct() {
 }
 
 #[test]
+fn configured_storage_preserves_environments_and_rejects_invalid_roots() {
+    use crate::database::configured_data_directory;
+    use std::fs;
+    let temporary = std::env::temp_dir().join(format!("mycelium-location-{}", crate::data_management::files::token()));
+    fs::create_dir(&temporary).unwrap();
+    // Use the canonical temp path so platforms whose temp folder is a link work too.
+    let temporary = fs::canonicalize(temporary).unwrap();
+    let config = temporary.join("config");
+    let root = temporary.join("data");
+    fs::create_dir(&config).unwrap(); fs::create_dir(&root).unwrap();
+    let documents = temporary.join("documents");
+    let file = config.join("data-location.json");
+    assert_eq!(configured_data_directory(&documents, &config, false).unwrap(), documents.join("O-neash-data"));
+    fs::write(&file, serde_json::to_vec(&json!({"root": root})).unwrap()).unwrap();
+    assert_eq!(configured_data_directory(&documents, &config, false).unwrap(), root.join("O-neash-data"));
+    assert_eq!(configured_data_directory(&documents, &config, true).unwrap(), root.join("O-neash-data-dev"));
+    // An invalid configured location must never silently open an empty default DB.
+    for invalid in [json!({"root":"relative"}), json!({"root": format!("{}{sep}..", root.display(), sep = std::path::MAIN_SEPARATOR)}),
+        json!({"root": temporary.join("missing")}), json!({"root": file}),
+        json!({"root": root, "typo": true})] {
+        fs::write(&file, serde_json::to_vec(&invalid).unwrap()).unwrap();
+        assert!(configured_data_directory(&documents, &config, false).is_err(), "Accepted invalid config: {invalid}");
+    }
+    fs::write(&file, b"{broken").unwrap();
+    assert!(configured_data_directory(&documents, &config, false).is_err());
+    fs::write(&file, serde_json::to_vec(&json!({"root": root})).unwrap()).unwrap();
+    fs::write(root.join("O-neash-data"), b"not a directory").unwrap();
+    assert!(configured_data_directory(&documents, &config, false).is_err());
+    fs::remove_dir_all(temporary).unwrap();
+}
+
+#[test]
 fn settings_v5_upgrade_is_atomic_and_repeated_migrations_preserve_revisions() {
     tauri::async_runtime::block_on(async {
         let mut connection = memory_connection().await;
